@@ -13,7 +13,9 @@ public:
     Context();
     ~Context();
     static Context* create();
+    virtual Context* clone()const=0;
     virtual ContextImpl *getImpl()=0;
+    virtual const ContextImpl *getImpl()const=0;
 };
 
 }

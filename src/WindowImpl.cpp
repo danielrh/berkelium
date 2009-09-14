@@ -2,7 +2,9 @@
 #include "WindowImpl.hpp"
 namespace Berkelium {
 WindowImpl::WindowImpl() {
-
+    
+}
+WindowImpl::WindowImpl(const Context*otherContext):Window(otherContext) {
 }
 WindowImpl::~WindowImpl() {
 

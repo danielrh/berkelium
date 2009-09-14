@@ -7,7 +7,8 @@ class WindowImpl :public Window {
 public:
     WindowImpl *getImpl();
     WindowImpl();
-    ~WindowImpl();
+    WindowImpl(const Context*otherContext);
+    virtual ~WindowImpl();
     
 };
 

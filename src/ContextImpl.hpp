@@ -5,6 +5,7 @@
 namespace Berkelium {
 class ContextImpl :public Context{
 public:
+    ContextImpl(const ContextImpl&other);
     ContextImpl();
     ~ContextImpl();
 
@@ -13,6 +14,8 @@ public:
         return mBrowsingInstance;
     }
     ContextImpl *getImpl();
+    const ContextImpl *getImpl()const;
+    Context*clone()const;
 private:
     BrowsingInstance *mBrowsingInstance;
     

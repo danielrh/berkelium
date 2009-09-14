@@ -5,6 +5,10 @@
 #include "ContextImpl.hpp"
 
 namespace Berkelium {
+ContextImpl::ContextImpl(const ContextImpl&other) {
+    other.mBrowsingInstance->AddRef();
+    mBrowsingInstance=other.mBrowsingInstance;
+}
 ContextImpl::ContextImpl() {
     Profile * profile=Root::getSingleton().getProfile();
     mBrowsingInstance = new BrowsingInstance(profile);
@@ -13,7 +17,13 @@ ContextImpl::ContextImpl() {
 ContextImpl::~ContextImpl() {
     mBrowsingInstance->Release();
 }
+Context* ContextImpl::clone() const{
+    return new ContextImpl(*this);
+}
 ContextImpl* ContextImpl::getImpl() {
+    return this;
+}
+const ContextImpl* ContextImpl::getImpl() const{
     return this;
 }
 SiteInstance *ContextImpl::getSiteInstance(const std::string &url) {
