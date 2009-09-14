@@ -8,11 +8,12 @@ namespace Berkelium {
 class ContextImpl;
 
 class BERKELIUM_EXPORT Context {
+  protected:
+    Context();
+
 public:
 
-    Context();
-    ~Context();
-    static Context* create();
+    virtual ~Context();
     virtual Context* clone()const=0;
     virtual ContextImpl *getImpl()=0;
     virtual const ContextImpl *getImpl()const=0;

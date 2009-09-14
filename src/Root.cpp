@@ -7,8 +7,13 @@
 #include "base/thread.h"
 #include "base/command_line.h"
 #include "base/icu_util.h"
+#include "net/base/cookie_monster.h"
 #include "chrome/common/chrome_paths.h"
+#include "chrome/browser/browser_prefs.h"
 #include "chrome/browser/browser_process_impl.h"
+#include "chrome/browser/process_singleton.h"
+#include "chrome/browser/profile_manager.h"
+#include "chrome/browser/renderer_host/browser_render_process_host.h"
 #include "app/resource_bundle.h"
 #include "app/app_paths.h"
 //icu_util::Initialize()
@@ -22,30 +27,43 @@ Root::Root (){
     base::Thread *coreThread = new base::Thread("CoreThread");
 	coreThread->StartWithOptions(base::Thread::Options(MessageLoop::TYPE_UI, 0));
 */
+    chrome::RegisterPathProvider();
+    app::RegisterPathProvider();
+    FilePath homedirpath;
+    PathService::Get(chrome::DIR_USER_DATA,&homedirpath);
+
+    mProcessSingleton= new ProcessSingleton(homedirpath);
+    BrowserProcess *browser_process;
     {
         const char* argv[] = { "berkelium" };
         CommandLine::Init(1, argv);
-        new BrowserProcessImpl(*CommandLine::ForCurrentProcess());
+        browser_process=new BrowserProcessImpl(*CommandLine::ForCurrentProcess());
         assert(g_browser_process);
     }
 	mMessageLoop = new MessageLoop(MessageLoop::TYPE_UI);
 //    mNotificationService=new NotificationService();
 //    ChildProcess* coreProcess=new ChildProcess;
 //    coreProcess->set_main_thread(new ChildThread);
-    chrome::RegisterPathProvider();
-    app::RegisterPathProvider();
-    FilePath homedirpath;
-    PathService::Get(chrome::DIR_USER_DATA,&homedirpath);
 
 #if !defined(OS_MACOSX)
     ResourceBundle::InitSharedInstance(L"en-US");// FIXME: lookup locale
     // We only load the theme dll in the browser process.
     ResourceBundle::GetSharedInstance().LoadThemeResources();
 #endif  // !defined(OS_MACOSX)
+    net::CookieMonster::EnableFileScheme();
+    ProfileManager* profile_manager = browser_process->profile_manager();
+    mProf = profile_manager->GetDefaultProfile(homedirpath);
+
+    PrefService* user_prefs = mProf->GetPrefs();
+    DCHECK(user_prefs);
     
-    mProf = Profile::CreateProfile(homedirpath);
+    // Now that local state and user prefs have been loaded, make the two pref
+    // services aware of all our preferences.
+    browser::RegisterAllPrefs(user_prefs, browser_process->local_state());
+    //mProcessSingleton->Create();
 }
 Root::~Root(){
+    //  delete mProcessSingleton;
     delete mProf;
 //    delete mNotificationService;
     delete mMessageLoop;

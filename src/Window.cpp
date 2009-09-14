@@ -11,7 +11,7 @@ Window* Window::create(const Context &otherContext) {
 
 
 Window::Window() {
-    mContext=Context::create();
+    mContext=NULL;
 }
 Window::Window(const Context*otherContext) {
     mContext=otherContext->clone();

@@ -3,9 +3,6 @@
 
 namespace Berkelium {
 
-Context* Context::create() {
-    return new ContextImpl();
-}
 
 
 Context::Context() {

@@ -6,18 +6,17 @@ namespace Berkelium {
 class ContextImpl :public Context{
 public:
     ContextImpl(const ContextImpl&other);
-    ContextImpl();
+    ContextImpl(SiteInstance*);
     ~ContextImpl();
 
-    SiteInstance *getSiteInstance(const std::string &url);
-    BrowsingInstance *getBrowsingInstance(){
-        return mBrowsingInstance;
+    SiteInstance *getSiteInstance(){
+        return mSiteInstance;
     }
     ContextImpl *getImpl();
     const ContextImpl *getImpl()const;
     Context*clone()const;
 private:
-    BrowsingInstance *mBrowsingInstance;
+    SiteInstance *mSiteInstance;
     
 };
 

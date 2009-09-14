@@ -11,6 +11,8 @@ class BERKELIUM_EXPORT Window {
 protected:
     Window();
     Window (const Context*otherContext);
+    Context *mContext;
+
 public:
     static Window* create();
     static Window* create(const Context&otherContext);
@@ -20,8 +22,7 @@ public:
         return mContext;
     }
     virtual WindowImpl*getImpl()=0;
-private:
-    Context *mContext;
+
 };
 
 }
