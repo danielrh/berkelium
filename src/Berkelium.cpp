@@ -1,7 +1,7 @@
 
 #include "chrome/browser/tab_contents/tab_contents.h"
 #include "berkelium/Berkelium.hpp"
-#include "berkelium/Root.hpp"
+#include "Root.hpp"
 namespace Berkelium {
 
 void init() {

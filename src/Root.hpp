@@ -11,6 +11,10 @@ class Root:public AutoSingleton<Root> {
 public:
     Root();
     ~Root();
+
+    inline Profile* getProfile() {
+        return mProf;
+    }
 };
 
 }

@@ -1,6 +1,6 @@
 // Berkelium headers
 #include "berkelium/Platform.hpp"
-#include "berkelium/Root.hpp"
+#include "Root.hpp"
 // Chromium headers
 #include "base/at_exit.h"
 #include "base/path_service.h"
