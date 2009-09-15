@@ -71,4 +71,7 @@
 #endif
 
 #endif
+
+#define UNIMPLEMENTED() (fprintf(stderr,"UNIMPLEMENTED %s:%d\n",__FILE__,__LINE__))
+
 #include <string>

@@ -1,14 +1,18 @@
 #ifndef _BERKELIUM_WINDOWIMPL_HPP_
 #define _BERKELIUM_WINDOWIMPL_HPP_
 #include "berkelium/Window.hpp"
-
+#include "base/gfx/rect.h"
+#include "base/gfx/size.h"
 #include "chrome/browser/renderer_host/render_widget_host.h"
 #include "chrome/browser/renderer_host/render_view_host.h"
 #include "chrome/browser/renderer_host/render_view_host_delegate.h"
 #include "chrome/browser/tab_contents/render_view_host_manager.h"
-
+#include "chrome/browser/tab_contents/navigation_controller.h"
 
 namespace Berkelium {
+class WindowView;
+
+
 class WindowImpl :
         public Window,
         public RenderViewHostManager::Delegate,
@@ -27,6 +31,9 @@ protected: /******* RenderViewHostManager::Delegate *******/
 
     virtual bool CreateRenderViewForRenderManager(
         RenderViewHost* render_view_host);
+    void UpdateMaxPageIDIfNecessary(SiteInstance* site_instance,
+                                    RenderViewHost* rvh);
+    
     virtual void BeforeUnloadFiredFromRenderManager(
         bool proceed, bool* proceed_to_fire_unload);
     virtual void DidStartLoadingFromRenderManager(
@@ -39,11 +46,16 @@ protected: /******* RenderViewHostManager::Delegate *******/
     virtual DOMUI* CreateDOMUIForRenderManager(const GURL& url);
     virtual NavigationEntry*
         GetLastCommittedNavigationEntryForRenderManager();
-
+    virtual int GetBrowserWindowID() const;
+    ViewType::Type GetRenderViewType()const;
 protected: /******* RenderViewHostDelegate *******/
+    // Manages creation and swapping of render views.
+    scoped_ptr<RenderViewHostManager> render_manager_;
+    // Handles the back/forward list and loading.
+    NavigationController controller_;
 
-  virtual View* GetViewDelegate();
-  virtual Resource* GetResourceDelegate();
+    virtual RenderViewHostDelegate::View* GetViewDelegate();
+    virtual RenderViewHostDelegate::Resource* GetResourceDelegate();
 
   // Functions for managing switching of Renderers. For TabContents, this is
   // implemented by the RenderViewHostManager
@@ -52,7 +64,19 @@ protected: /******* RenderViewHostDelegate *******/
 //  virtual BrowserIntegration* GetBrowserIntegrationDelegate();
 
 protected: /******* RenderViewHostDelegate::Resource *******/
-
+    void GetContainerBounds(gfx::Rect* rc) const{
+        rc->SetRect(origin_x,origin_y,width,height);
+    }
+    int width;
+    int height;
+    int origin_x;
+    int origin_y;
+    gfx::Size GetContainerSize()const {
+        gfx::Rect rc;
+        GetContainerBounds(&rc);
+        return gfx::Size(rc.width(),rc.height());
+    }
+    virtual RenderWidgetHostView* CreateViewForWidget(RenderWidgetHost*render_widget_host);
     virtual void DidStartProvisionalLoadForFrame(
         RenderViewHost* render_view_host,
         bool is_main_frame,
