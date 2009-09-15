@@ -60,7 +60,7 @@ Root::Root (){
     // Now that local state and user prefs have been loaded, make the two pref
     // services aware of all our preferences.
     browser::RegisterAllPrefs(user_prefs, browser_process->local_state());
-    //mProcessSingleton->Create();
+    mProcessSingleton->Create();
 }
 Root::~Root(){
     //  delete mProcessSingleton;

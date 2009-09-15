@@ -20,7 +20,26 @@ WindowImpl::WindowImpl(const Context*otherContext):Window(otherContext) {
     init(mContext->getImpl()->getSiteInstance());
 }
 WindowImpl::~WindowImpl() {
+}
 
+bool TabContents::CreateRenderViewForRenderManager(
+    RenderViewHost* render_view_host) {
+  // If the pending navigation is to a DOMUI, tell the RenderView about any
+  // bindings it will need enabled.
+  if (render_manager_.pending_dom_ui())
+    render_view_host->AllowBindings(
+        render_manager_.pending_dom_ui()->bindings());
+
+  RenderWidgetHostView* rwh_view = view_->CreateViewForWidget(render_view_host);
+  if (!render_view_host->CreateRenderView())
+    return false;
+
+  // Now that the RenderView has been created, we need to tell it its size.
+  rwh_view->SetSize(view_->GetContainerSize());
+
+  UpdateMaxPageIDIfNecessary(render_view_host->site_instance(),
+                             render_view_host);
+  return true;
 }
 
 WindowImpl* WindowImpl::getImpl(){
