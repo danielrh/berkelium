@@ -16,6 +16,7 @@
 #include "chrome/browser/renderer_host/browser_render_process_host.h"
 #include "app/resource_bundle.h"
 #include "app/app_paths.h"
+#include "chrome/common/pref_names.h"
 //icu_util::Initialize()
 
 AUTO_SINGLETON_INSTANCE(Berkelium::Root);
@@ -60,6 +61,10 @@ Root::Root (){
     // Now that local state and user prefs have been loaded, make the two pref
     // services aware of all our preferences.
     browser::RegisterAllPrefs(user_prefs, browser_process->local_state());
+
+    browser_process->local_state()->RegisterStringPref(prefs::kApplicationLocale, L"");
+    browser_process->local_state()->RegisterBooleanPref(prefs::kMetricsReportingEnabled, false);
+//    browser_process->local_state()->SetString(prefs::kApplicationLocale,std::wstring());
     mProcessSingleton->Create();
 }
 Root::~Root(){
