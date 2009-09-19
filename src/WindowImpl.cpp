@@ -12,22 +12,18 @@ namespace Berkelium {
 //WindowImpl temp;
 void WindowImpl::init(SiteInstance*site) {
     render_manager_.reset(new RenderViewHostManager(this,this));
-/*
-    mTabContents  = new TabContents(Root::getSingleton().getProfile(),
+
+    render_manager_->Init(Root::getSingleton().getProfile(),
                                     site,
                                     MSG_ROUTING_NONE,
-                                    NULL);*/
+                                    NULL);
 }
-/*
-WindowImpl::WindowImpl() {
-    init(NULL);
-    mContext=new ContextImpl(SiteInstance());
-}
-*/
+
 WindowImpl::WindowImpl(const Context*otherContext):Window(otherContext) {
     init(mContext->getImpl()->getSiteInstance());
 }
 WindowImpl::~WindowImpl() {
+    render_manager_.reset();
 }
 
 
