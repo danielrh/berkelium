@@ -6,7 +6,8 @@ namespace Berkelium {
 class ContextImpl :public Context{
 public:
     ContextImpl(const ContextImpl&other);
-    ContextImpl(SiteInstance*);
+    ContextImpl(Profile*prof, SiteInstance*si);
+    ContextImpl(Profile*prof);
     ~ContextImpl();
 
     SiteInstance *getSiteInstance(){
@@ -14,9 +15,15 @@ public:
     }
     ContextImpl *getImpl();
     const ContextImpl *getImpl()const;
+
+    Profile*profile()const {
+        return mProfile;
+    }
+
     Context*clone()const;
 private:
     SiteInstance *mSiteInstance;
+    Profile *mProfile;
     
 };
 

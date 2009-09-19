@@ -1,19 +1,16 @@
 #include "berkelium/Platform.hpp"
 #include "ContextImpl.hpp"
-
+#include "RenderWidget.hpp"
 #include "WindowImpl.hpp"
 #include "Root.hpp"
+
 #include "chrome/browser/tab_contents/tab_contents.h"
 #include "chrome/browser/dom_ui/dom_ui.h"
 #include "chrome/browser/dom_ui/dom_ui_factory.h"
 #include "chrome/browser/renderer_host/render_widget_host_view.h"
 namespace Berkelium {
-WindowImpl temp;
+//WindowImpl temp;
 void WindowImpl::init(SiteInstance*site) {
-    width=1024;
-    height=768;
-    origin_x=0;
-    origin_y=0;
     render_manager_.reset(new RenderViewHostManager(this,this));
 /*
     mTabContents  = new TabContents(Root::getSingleton().getProfile(),
@@ -21,20 +18,30 @@ void WindowImpl::init(SiteInstance*site) {
                                     MSG_ROUTING_NONE,
                                     NULL);*/
 }
-WindowImpl::WindowImpl() :controller_(NULL,Root::getSingleton().getProfile()){
+/*
+WindowImpl::WindowImpl() {
     init(NULL);
-//FIXME
-    //mContext=new ContextImpl(mTabContents->GetSiteInstance());
+    mContext=new ContextImpl(SiteInstance());
 }
-WindowImpl::WindowImpl(const Context*otherContext):Window(otherContext),controller_(NULL,Root::getSingleton().getProfile()) {
+*/
+WindowImpl::WindowImpl(const Context*otherContext):Window(otherContext) {
     init(mContext->getImpl()->getSiteInstance());
 }
 WindowImpl::~WindowImpl() {
 }
-RenderWidgetHostView* WindowImpl::CreateViewForWidget(RenderWidgetHost*render_widget_host){
-    UNIMPLEMENTED();
-    return NULL;
+
+
+
+WindowImpl* WindowImpl::getImpl() {
+    return this;
 }
+
+ContextImpl *WindowImpl::getContextImpl() const {
+    return static_cast<ContextImpl*>(getContext());
+}
+
+
+/******* RenderViewHostManager::Delegate *******/
 
 bool WindowImpl::CreateRenderViewForRenderManager(
     RenderViewHost* render_view_host) {
@@ -54,9 +61,8 @@ bool WindowImpl::CreateRenderViewForRenderManager(
   UpdateMaxPageIDIfNecessary(render_view_host->site_instance(),
                              render_view_host);
   return true;
+
 }
-
-
 
 void WindowImpl::UpdateMaxPageIDIfNecessary(SiteInstance* site_instance,
                                              RenderViewHost* rvh) {
@@ -66,8 +72,11 @@ void WindowImpl::UpdateMaxPageIDIfNecessary(SiteInstance* site_instance,
   // Note that it is ok for conflicting page IDs to exist in another tab
   // (i.e., NavigationController), but if any page ID is larger than the max,
   // the back/forward list will get confused.
+
+#if 0
     int max_restored_page_id = controller_.max_restored_page_id();
   if (max_restored_page_id > 0) {
+
     int curr_max_page_id = site_instance->max_page_id();
     if (max_restored_page_id > curr_max_page_id) {
       // Need to update the site instance immediately.
@@ -81,14 +90,134 @@ void WindowImpl::UpdateMaxPageIDIfNecessary(SiteInstance* site_instance,
       rvh->ReservePageIDRange(max_restored_page_id - curr_max_page_id);
     }
   }
+#endif
 }
+
+    
+void WindowImpl::BeforeUnloadFiredFromRenderManager(
+    bool proceed,
+    bool* proceed_to_fire_unload)
+{
+}
+void WindowImpl::DidStartLoadingFromRenderManager(
+    RenderViewHost* render_view_host) {
+}
+void WindowImpl::RenderViewGoneFromRenderManager(
+        RenderViewHost* render_view_host) {
+}
+void WindowImpl::UpdateRenderViewSizeForRenderManager() {
+}
+void WindowImpl::NotifySwappedFromRenderManager() {
+}
+void WindowImpl::NotifyRenderViewHostSwitchedFromRenderManager(RenderViewHostSwitchedDetails*details) {
+}
+Profile* WindowImpl::GetProfileForRenderManager() const{
+    return getContextImpl()->profile();
+}
+NavigationEntry* WindowImpl::GetEntryAtOffsetForRenderManager(int offset) {
+    return mNavEntry;
+}
+DOMUI* WindowImpl::CreateDOMUIForRenderManager(const GURL& url) {
+    return NULL;
+}
+NavigationEntry* WindowImpl::GetLastCommittedNavigationEntryForRenderManager() {
+    return mNavEntry;
+}
+
 int WindowImpl::GetBrowserWindowID() const {
-    return controller_.window_id().id();
+    // FIXME!!!!
+    return 0; //controller_.window_id().id();
 }
 ViewType::Type WindowImpl::GetRenderViewType()const {
     return ViewType::TAB_CONTENTS;
 }
-WindowImpl* WindowImpl::getImpl(){
+
+/******* RenderViewHostDelegate *******/
+
+RenderViewHostDelegate::View* WindowImpl::GetViewDelegate() {
     return this;
 }
+RenderViewHostDelegate::Resource* WindowImpl::GetResourceDelegate() {
+    return this;
+}
+
+/******* RenderViewHostDelegate::Resource *******/
+
+RenderWidgetHostView* WindowImpl::CreateViewForWidget(RenderWidgetHost*render_widget_host) {
+    return new RenderWidget(this, render_widget_host);
+}
+
+void WindowImpl::DidStartProvisionalLoadForFrame(
+        RenderViewHost* render_view_host,
+        bool is_main_frame,
+        const GURL& url) {
+}
+
+void WindowImpl::DidStartReceivingResourceResponse(
+        ResourceRequestDetails* details) {
+}
+
+void WindowImpl::DidRedirectProvisionalLoad(
+    int32 page_id,
+    const GURL& source_url,
+    const GURL& target_url) {
+}
+
+void WindowImpl::DidRedirectResource(ResourceRequestDetails* details) {
+}
+
+void WindowImpl::DidLoadResourceFromMemoryCache(
+        const GURL& url,
+        const std::string& frame_origin,
+        const std::string& main_frame_origin,
+        const std::string& security_info) {
+}
+
+void WindowImpl::DidFailProvisionalLoadWithError(
+        RenderViewHost* render_view_host,
+        bool is_main_frame,
+        int error_code,
+        const GURL& url,
+        bool showing_repost_interstitial) {
+}
+
+void WindowImpl::DocumentLoadedInFrame() {
+}
+
+/******* RenderViewHostDelegate::View *******/
+void WindowImpl::CreateNewWindow(int route_id,
+                                 base::WaitableEvent* modal_dialog_event) {
+}
+void WindowImpl::CreateNewWidget(int route_id, bool activatable) {
+}
+void WindowImpl::ShowCreatedWindow(int route_id,
+                                   WindowOpenDisposition disposition,
+                                   const gfx::Rect& initial_pos,
+                                   bool user_gesture,
+                                   const GURL& creator_url) {
+}
+void WindowImpl::ShowCreatedWidget(int route_id,
+                                   const gfx::Rect& initial_pos) {
+}
+void WindowImpl::ShowContextMenu(const ContextMenuParams& params) {
+}
+void WindowImpl::StartDragging(const WebDropData& drop_data,
+                               WebKit::WebDragOperationsMask allowed_ops) {
+}
+void WindowImpl::UpdateDragCursor(WebKit::WebDragOperation operation) {
+}
+void WindowImpl::GotFocus() {
+}
+void WindowImpl::TakeFocus(bool reverse) {
+}
+void WindowImpl::HandleKeyboardEvent(const NativeWebKeyboardEvent& event) {
+}
+void WindowImpl::HandleMouseEvent() {
+}
+void WindowImpl::HandleMouseLeave() {
+}
+void WindowImpl::UpdatePreferredWidth(int pref_width) {
+}
+
+
 }

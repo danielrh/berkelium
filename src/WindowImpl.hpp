@@ -11,7 +11,7 @@
 
 namespace Berkelium {
 class WindowView;
-
+class RenderWidget;
 
 class WindowImpl :
         public Window,
@@ -23,9 +23,12 @@ class WindowImpl :
     void init(SiteInstance *);
 public:
     WindowImpl *getImpl();
-    WindowImpl();
+//    WindowImpl();
     WindowImpl(const Context*otherContext);
     virtual ~WindowImpl();
+
+protected:
+    ContextImpl *getContextImpl() const;
 
 protected: /******* RenderViewHostManager::Delegate *******/
 
@@ -42,7 +45,9 @@ protected: /******* RenderViewHostManager::Delegate *******/
         RenderViewHost* render_view_host);
     virtual void UpdateRenderViewSizeForRenderManager();
     virtual void NotifySwappedFromRenderManager();
-    virtual NavigationController& GetControllerForRenderManager();
+    virtual void NotifyRenderViewHostSwitchedFromRenderManager(RenderViewHostSwitchedDetails*details);
+    virtual Profile* GetProfileForRenderManager() const;
+    virtual NavigationEntry* GetEntryAtOffsetForRenderManager(int offset);
     virtual DOMUI* CreateDOMUIForRenderManager(const GURL& url);
     virtual NavigationEntry*
         GetLastCommittedNavigationEntryForRenderManager();
@@ -51,8 +56,6 @@ protected: /******* RenderViewHostManager::Delegate *******/
 protected: /******* RenderViewHostDelegate *******/
     // Manages creation and swapping of render views.
     scoped_ptr<RenderViewHostManager> render_manager_;
-    // Handles the back/forward list and loading.
-    NavigationController controller_;
 
     virtual RenderViewHostDelegate::View* GetViewDelegate();
     virtual RenderViewHostDelegate::Resource* GetResourceDelegate();
@@ -64,13 +67,10 @@ protected: /******* RenderViewHostDelegate *******/
 //  virtual BrowserIntegration* GetBrowserIntegrationDelegate();
 
 protected: /******* RenderViewHostDelegate::Resource *******/
+
     void GetContainerBounds(gfx::Rect* rc) const{
-        rc->SetRect(origin_x,origin_y,width,height);
+        rc->SetRect(mRect.x(), mRect.y(), mRect.width(), mRect.height());
     }
-    int width;
-    int height;
-    int origin_x;
-    int origin_y;
     gfx::Size GetContainerSize()const {
         gfx::Rect rc;
         GetContainerBounds(&rc);
@@ -127,6 +127,11 @@ protected: /******* RenderViewHostDelegate::View *******/
     virtual void HandleMouseEvent();
     virtual void HandleMouseLeave();
     virtual void UpdatePreferredWidth(int pref_width);
+
+private:
+
+    gfx::Rect mRect;
+    NavigationEntry *mNavEntry;
 
 };
 

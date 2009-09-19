@@ -18,7 +18,7 @@ public:
     static Window* create(const Context&otherContext);
     virtual ~Window();
 
-    inline Context *getContext() {
+    inline Context *getContext() const {
         return mContext;
     }
     virtual WindowImpl*getImpl()=0;
