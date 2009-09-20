@@ -16,7 +16,7 @@ public:
     RenderWidget(WindowImpl *winImpl, RenderWidgetHost* host);
     ~RenderWidget();
 
-protected: /******* RenderWidgetHostView *******/
+public: /******* RenderWidgetHostView *******/
 
   // Perform all the initialization steps necessary for this object to represent
   // a popup (such as a <select> dropdown), then shows the popup at |pos|.

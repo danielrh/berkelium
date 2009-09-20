@@ -41,6 +41,9 @@ public:
         const GURL &referrerURL,
         bool reload);
 
+    void SetContainerBounds(const gfx::Rect &rc);
+    void resize(int width, int height);
+
 protected:
     ContextImpl *getContextImpl() const;
 
@@ -68,8 +71,6 @@ protected: /******* RenderViewHostManager::Delegate *******/
     virtual int GetBrowserWindowID() const;
     ViewType::Type GetRenderViewType()const;
 protected: /******* RenderViewHostDelegate *******/
-    // Manages creation and swapping of render views.
-    scoped_ptr<RenderViewHostManager> render_manager_;
 
     virtual RenderViewHostDelegate::View* GetViewDelegate();
     virtual RenderViewHostDelegate::Resource* GetResourceDelegate();
@@ -90,6 +91,7 @@ protected: /******* RenderViewHostDelegate::Resource *******/
         GetContainerBounds(&rc);
         return gfx::Size(rc.width(),rc.height());
     }
+
     virtual RenderWidgetHostView* CreateViewForWidget(RenderWidgetHost*render_widget_host);
     virtual void DidStartProvisionalLoadForFrame(
         RenderViewHost* render_view_host,
@@ -147,6 +149,9 @@ private:
     gfx::Rect mRect;
     NavigationEntry *mLastNavEntry;
     NavigationEntry *mNavEntry;
+
+    // Manages creation and swapping of render views.
+    scoped_ptr<RenderViewHostManager> mRenderManager;
 
 };
 

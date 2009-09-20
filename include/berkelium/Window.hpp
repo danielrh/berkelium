@@ -22,6 +22,7 @@ public:
         return mContext;
     }
 
+    virtual void resize(int width, int height)=0;
     virtual bool navigateTo(const std::string &url)=0;
     virtual WindowImpl*getImpl()=0;
 

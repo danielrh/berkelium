@@ -16,9 +16,9 @@
 namespace Berkelium {
 //WindowImpl temp;
 void WindowImpl::init(SiteInstance*site) {
-    render_manager_.reset(new RenderViewHostManager(this,this));
+    mRenderManager.reset(new RenderViewHostManager(this,this));
 
-    render_manager_->Init(profile(),
+    mRenderManager->Init(profile(),
                           site,
                           MSG_ROUTING_NONE,
                           NULL);
@@ -30,7 +30,7 @@ WindowImpl::WindowImpl(const Context*otherContext):Window(otherContext) {
     mNavEntry = NULL;
 }
 WindowImpl::~WindowImpl() {
-    render_manager_.reset();
+    mRenderManager.reset();
     delete mLastNavEntry;
     delete mNavEntry;
 }
@@ -44,6 +44,22 @@ void MakeNavigateParams(const NavigationEntry& entry, bool reload,
   params->state = entry.content_state();
   params->reload = reload;
   params->request_time = base::Time::Now();
+}
+
+void WindowImpl::resize(int width, int height) {
+    SetContainerBounds(gfx::Rect(0, 0, width, height));
+}
+
+void WindowImpl::SetContainerBounds (const gfx::Rect &rc) {
+    mRect = rc;
+    RenderWidgetHostView* view = mRenderManager->current_view();
+    if (view) {
+        view->SetSize(this->GetContainerSize());
+    }
+    RenderViewHost* host = mRenderManager->current_host();
+    if (host) {
+        host->WasResized();
+    }
 }
 
 bool WindowImpl::navigateTo(const std::string &url) {
@@ -68,7 +84,7 @@ bool WindowImpl::doNavigateTo(
         return false;
     }
 
-    RenderViewHost* dest_render_view_host = render_manager_->Navigate(*mNavEntry);
+    RenderViewHost* dest_render_view_host = mRenderManager->Navigate(*mNavEntry);
     if (!dest_render_view_host) {
         return false;  // Unable to create the desired render view host.
     }
@@ -77,7 +93,6 @@ bool WindowImpl::doNavigateTo(
     ViewMsg_Navigate_Params navigate_params;
     MakeNavigateParams(*mNavEntry, reload, &navigate_params);
     dest_render_view_host->Navigate(navigate_params);
-
     return true;
 }
 
@@ -122,16 +137,19 @@ bool WindowImpl::CreateRenderViewForRenderManager(
     RenderViewHost* render_view_host) {
   // If the pending navigation is to a DOMUI, tell the RenderView about any
   // bindings it will need enabled.
-  if (render_manager_->pending_dom_ui())
+  if (mRenderManager->pending_dom_ui())
     render_view_host->AllowBindings(
-        render_manager_->pending_dom_ui()->bindings());
+        mRenderManager->pending_dom_ui()->bindings());
 
-  RenderWidgetHostView* rwh_view = this->CreateViewForWidget(render_view_host);
+  RenderWidget* rwh_view = 
+      static_cast<RenderWidget*>(this->CreateViewForWidget(render_view_host));
+
   if (!render_view_host->CreateRenderView())
     return false;
 
   // Now that the RenderView has been created, we need to tell it its size.
   rwh_view->SetSize(this->GetContainerSize());
+  render_view_host->set_view(rwh_view);
 
   UpdateMaxPageIDIfNecessary(render_view_host->site_instance(),
                              render_view_host);
@@ -181,6 +199,7 @@ void WindowImpl::RenderViewGoneFromRenderManager(
         RenderViewHost* render_view_host) {
 }
 void WindowImpl::UpdateRenderViewSizeForRenderManager() {
+    SetContainerBounds(mRect);
 }
 void WindowImpl::NotifySwappedFromRenderManager() {
 }
