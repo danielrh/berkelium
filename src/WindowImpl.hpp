@@ -21,11 +21,25 @@ class WindowImpl :
         public RenderViewHostDelegate::View
 {
     void init(SiteInstance *);
+    NavigationEntry* CreateNavigationEntry(
+        const GURL&url,
+        const GURL&referrer,
+        PageTransition::Type transition);
+
 public:
     WindowImpl *getImpl();
 //    WindowImpl();
     WindowImpl(const Context*otherContext);
     virtual ~WindowImpl();
+
+    bool navigateTo(const std::string &url);
+
+    Profile *profile() const;
+
+    bool doNavigateTo(
+        const GURL &newURL,
+        const GURL &referrerURL,
+        bool reload);
 
 protected:
     ContextImpl *getContextImpl() const;
@@ -131,6 +145,7 @@ protected: /******* RenderViewHostDelegate::View *******/
 private:
 
     gfx::Rect mRect;
+    NavigationEntry *mLastNavEntry;
     NavigationEntry *mNavEntry;
 
 };

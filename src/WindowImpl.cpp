@@ -4,30 +4,109 @@
 #include "WindowImpl.hpp"
 #include "Root.hpp"
 
+#include "base/file_util.h"
+#include "net/base/net_util.h"
+#include "chrome/browser/renderer_host/render_view_host.h"
+#include "chrome/common/render_messages.h"
 #include "chrome/browser/tab_contents/tab_contents.h"
 #include "chrome/browser/dom_ui/dom_ui.h"
 #include "chrome/browser/dom_ui/dom_ui_factory.h"
 #include "chrome/browser/renderer_host/render_widget_host_view.h"
+#include "chrome/browser/browser_url_handler.h"
 namespace Berkelium {
 //WindowImpl temp;
 void WindowImpl::init(SiteInstance*site) {
     render_manager_.reset(new RenderViewHostManager(this,this));
 
-    render_manager_->Init(Root::getSingleton().getProfile(),
-                                    site,
-                                    MSG_ROUTING_NONE,
-                                    NULL);
+    render_manager_->Init(profile(),
+                          site,
+                          MSG_ROUTING_NONE,
+                          NULL);
 }
 
 WindowImpl::WindowImpl(const Context*otherContext):Window(otherContext) {
     init(mContext->getImpl()->getSiteInstance());
+    mLastNavEntry = NULL;
+    mNavEntry = NULL;
 }
 WindowImpl::~WindowImpl() {
     render_manager_.reset();
+    delete mLastNavEntry;
+    delete mNavEntry;
+}
+
+void MakeNavigateParams(const NavigationEntry& entry, bool reload,
+                        ViewMsg_Navigate_Params* params) {
+  params->page_id = entry.page_id();
+  params->url = entry.url();
+  params->referrer = entry.referrer();
+  params->transition = entry.transition_type();
+  params->state = entry.content_state();
+  params->reload = reload;
+  params->request_time = base::Time::Now();
+}
+
+bool WindowImpl::navigateTo(const std::string &url) {
+    return doNavigateTo(GURL(url), GURL(), false);
+}
+bool WindowImpl::doNavigateTo(
+        const GURL &newURL,
+        const GURL &referrerURL,
+        bool reload)
+{
+    if (mLastNavEntry) {
+        delete mLastNavEntry;
+    }
+    mLastNavEntry = mNavEntry;
+    mNavEntry = CreateNavigationEntry(
+        newURL,
+        referrerURL,
+        PageTransition::TYPED);
+
+    if (!mNavEntry) {
+        mNavEntry = mLastNavEntry;
+        return false;
+    }
+
+    RenderViewHost* dest_render_view_host = render_manager_->Navigate(*mNavEntry);
+    if (!dest_render_view_host) {
+        return false;  // Unable to create the desired render view host.
+    }
+
+    // Navigate in the desired RenderViewHost.
+    ViewMsg_Navigate_Params navigate_params;
+    MakeNavigateParams(*mNavEntry, reload, &navigate_params);
+    dest_render_view_host->Navigate(navigate_params);
+
+    return true;
+}
+
+NavigationEntry* WindowImpl::CreateNavigationEntry(
+    const GURL& url, const GURL& referrer, PageTransition::Type transition) {
+  // Allow the browser URL handler to rewrite the URL. This will, for example,
+  // remove "view-source:" from the beginning of the URL to get the URL that
+  // will actually be loaded. This real URL won't be shown to the user, just
+  // used internally.
+  GURL loaded_url(url);
+  BrowserURLHandler::RewriteURLIfNecessary(&loaded_url, profile());
+
+  NavigationEntry* entry = new NavigationEntry(NULL, -1, loaded_url, referrer,
+                                               string16(), transition);
+  entry->set_virtual_url(url);
+  entry->set_user_typed_url(url);
+  if (url.SchemeIsFile()) {
+    entry->set_title(WideToUTF16Hack(
+        file_util::GetFilenameFromPath(net::FormatUrl(url, L"en_US"))));
+  }
+  return entry;
 }
 
 
 
+Profile* WindowImpl::profile() const{
+    //return Root::getSingleton().getProfile();
+    return getContextImpl()->profile();
+}
 WindowImpl* WindowImpl::getImpl() {
     return this;
 }
@@ -108,7 +187,7 @@ void WindowImpl::NotifySwappedFromRenderManager() {
 void WindowImpl::NotifyRenderViewHostSwitchedFromRenderManager(RenderViewHostSwitchedDetails*details) {
 }
 Profile* WindowImpl::GetProfileForRenderManager() const{
-    return getContextImpl()->profile();
+    return profile();
 }
 NavigationEntry* WindowImpl::GetEntryAtOffsetForRenderManager(int offset) {
     return mNavEntry;

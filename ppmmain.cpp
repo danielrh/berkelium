@@ -9,8 +9,9 @@ int main () {
     using namespace Berkelium;
     Berkelium::init();
     Window* win=Window::create();
+    win->navigateTo("http://google.com");
     char buffer[WIDTH][HEIGHT][3];
-    
+    sleep(5);
     int retval=Berkelium::renderToBuffer(&buffer[0][0][0],WIDTH,HEIGHT);
     delete win;
     return retval;

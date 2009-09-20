@@ -14,6 +14,7 @@
 #include "chrome/browser/process_singleton.h"
 #include "chrome/browser/profile_manager.h"
 #include "chrome/browser/renderer_host/browser_render_process_host.h"
+#include "chrome/browser/browser_url_handler.h"
 #include "app/resource_bundle.h"
 #include "app/app_paths.h"
 #include "chrome/common/pref_names.h"
@@ -32,6 +33,12 @@ Root::Root (){
     app::RegisterPathProvider();
     FilePath homedirpath;
     PathService::Get(chrome::DIR_USER_DATA,&homedirpath);
+
+
+//////// FIXME: HACK HACK HACK ///////////
+    FilePath child = homedirpath.AppendASCII("SingletonLock");
+    unlink(child.value().c_str());
+
 
     mProcessSingleton= new ProcessSingleton(homedirpath);
     BrowserProcess *browser_process;
@@ -66,6 +73,8 @@ Root::Root (){
     browser_process->local_state()->RegisterBooleanPref(prefs::kMetricsReportingEnabled, false);
 //    browser_process->local_state()->SetString(prefs::kApplicationLocale,std::wstring());
     mProcessSingleton->Create();
+
+    BrowserURLHandler::InitURLHandlers();
 }
 Root::~Root(){
     //  delete mProcessSingleton;

@@ -21,6 +21,8 @@ public:
     inline Context *getContext() const {
         return mContext;
     }
+
+    virtual bool navigateTo(const std::string &url)=0;
     virtual WindowImpl*getImpl()=0;
 
 };
