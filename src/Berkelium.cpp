@@ -10,7 +10,9 @@ void init() {
 void destroy() {
     Root::destroy();
 }
-
+void run() {
+    Root::getSingleton().runUIMessageLoop();
+}
 
 int renderToBuffer(char * buffer, int width, int height) {
     return 0;

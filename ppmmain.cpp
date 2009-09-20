@@ -3,6 +3,7 @@
 #include "berkelium/Berkelium.hpp"
 #include "berkelium/Window.hpp"
 #include "berkelium/Context.hpp"
+
 #define WIDTH 1024
 #define HEIGHT 768
 int main () {
@@ -11,7 +12,7 @@ int main () {
     Window* win=Window::create();
     win->navigateTo("http://google.com");
     char buffer[WIDTH][HEIGHT][3];
-    sleep(5);
+    Berkelium::run();
     int retval=Berkelium::renderToBuffer(&buffer[0][0][0],WIDTH,HEIGHT);
     delete win;
     return retval;

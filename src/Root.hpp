@@ -8,6 +8,9 @@ class ProcessSingleton;
 class ChromeThread;
 
 namespace Berkelium {
+
+class MemoryRenderViewHostFactory;
+
 //singleton class that contains chromium singletons. Not visible outside of Berkelium library core
 class Root:public AutoSingleton<Root> {
     Profile*mProf;
@@ -15,9 +18,12 @@ class Root:public AutoSingleton<Root> {
     NotificationService*mNotificationService;
     ProcessSingleton *mProcessSingleton;
     ChromeThread *mUIThread;
+    MemoryRenderViewHostFactory *mRenderViewHostFactory;
 public:
     Root();
     ~Root();
+
+    void runUIMessageLoop();
 
     ProcessSingleton *getProcessSingleton(){
         return mProcessSingleton;

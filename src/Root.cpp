@@ -1,7 +1,10 @@
 // Berkelium headers
 #include "berkelium/Platform.hpp"
 #include "Root.hpp"
+#include "MemoryRenderViewHost.hpp"
+
 // Chromium headers
+#include "base/message_loop.h"
 #include "base/at_exit.h"
 #include "base/path_service.h"
 #include "base/thread.h"
@@ -19,6 +22,9 @@
 #include "app/resource_bundle.h"
 #include "app/app_paths.h"
 #include "chrome/common/pref_names.h"
+#include "chrome/common/logging_chrome.h"
+#include "base/logging.h"
+
 //icu_util::Initialize()
 
 AUTO_SINGLETON_INSTANCE(Berkelium::Root);
@@ -35,6 +41,7 @@ Root::Root (){
     FilePath homedirpath;
     PathService::Get(chrome::DIR_USER_DATA,&homedirpath);
 
+    RenderProcessHost::set_run_renderer_in_process(true);
 
 //////// FIXME: HACK HACK HACK ///////////
     FilePath child = homedirpath.AppendASCII("SingletonLock");
@@ -52,6 +59,29 @@ Root::Root (){
 
         assert(g_browser_process);
     }
+
+#ifdef OS_WIN
+    logging::InitLogging(
+        L"chrome.log",
+        logging::LOG_TO_BOTH_FILE_AND_SYSTEM_DEBUG_LOG,
+        logging::DONT_LOCK_LOG_FILE,
+        logging::DELETE_OLD_LOG_FILE
+        );
+#else
+    logging::InitLogging(
+        "chrome.log",
+        logging::LOG_ONLY_TO_SYSTEM_DEBUG_LOG,
+        logging::DONT_LOCK_LOG_FILE,
+        logging::DELETE_OLD_LOG_FILE
+        );
+#endif
+    logging::InitChromeLogging(
+        *CommandLine::ForCurrentProcess(),
+        logging::DELETE_OLD_LOG_FILE);
+    //APPEND_TO_OLD_LOG_FILE
+
+    mRenderViewHostFactory = new MemoryRenderViewHostFactory;
+
 	mMessageLoop = new MessageLoop(MessageLoop::TYPE_UI);
     mUIThread = new ChromeThread();
     
@@ -80,11 +110,18 @@ Root::Root (){
 
     BrowserURLHandler::InitURLHandlers();
 }
+
+void Root::runUIMessageLoop() {
+    MessageLoopForUI::current()->Run(NULL);
+}
+
 Root::~Root(){
     //  
     g_browser_process->profile_manager()->RemoveProfile(mProf);
 
     g_browser_process->EndSession();
+
+    delete mRenderViewHostFactory;
     
     delete mProf;
     delete mUIThread;
