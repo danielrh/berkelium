@@ -14,6 +14,7 @@
 #include "chrome/browser/process_singleton.h"
 #include "chrome/browser/profile_manager.h"
 #include "chrome/browser/renderer_host/browser_render_process_host.h"
+#include "chrome/browser/chrome_thread.h"
 #include "chrome/browser/browser_url_handler.h"
 #include "app/resource_bundle.h"
 #include "app/app_paths.h"
@@ -46,9 +47,14 @@ Root::Root (){
         const char* argv[] = { "berkelium" };
         CommandLine::Init(1, argv);
         browser_process=new BrowserProcessImpl(*CommandLine::ForCurrentProcess());
+        browser_process->local_state()->RegisterStringPref(prefs::kApplicationLocale, L"");
+        browser_process->local_state()->RegisterBooleanPref(prefs::kMetricsReportingEnabled, false);
+
         assert(g_browser_process);
     }
 	mMessageLoop = new MessageLoop(MessageLoop::TYPE_UI);
+    mUIThread = new ChromeThread();
+    
 //    mNotificationService=new NotificationService();
 //    ChildProcess* coreProcess=new ChildProcess;
 //    coreProcess->set_main_thread(new ChildThread);
@@ -61,7 +67,7 @@ Root::Root (){
     net::CookieMonster::EnableFileScheme();
     ProfileManager* profile_manager = browser_process->profile_manager();
     mProf = profile_manager->GetDefaultProfile(homedirpath);
-
+    mProf->InitExtensions();
     PrefService* user_prefs = mProf->GetPrefs();
     DCHECK(user_prefs);
     
@@ -69,19 +75,23 @@ Root::Root (){
     // services aware of all our preferences.
     browser::RegisterAllPrefs(user_prefs, browser_process->local_state());
 
-    browser_process->local_state()->RegisterStringPref(prefs::kApplicationLocale, L"");
-    browser_process->local_state()->RegisterBooleanPref(prefs::kMetricsReportingEnabled, false);
 //    browser_process->local_state()->SetString(prefs::kApplicationLocale,std::wstring());
     mProcessSingleton->Create();
 
     BrowserURLHandler::InitURLHandlers();
 }
 Root::~Root(){
-    //  delete mProcessSingleton;
+    //  
+    g_browser_process->profile_manager()->RemoveProfile(mProf);
+
+    g_browser_process->EndSession();
+    
     delete mProf;
+    delete mUIThread;
 //    delete mNotificationService;
     delete mMessageLoop;
     delete g_browser_process;
+    delete mProcessSingleton;
 }
 
 
