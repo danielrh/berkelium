@@ -51,7 +51,7 @@ LIBS=-shared $(CLIBFLAGS) -g -Wl,--start-group `pkg-config --libs gtk+-2.0 glib-
 
 SRCS=$(wildcard src/*.cpp)
 OBJS=$(SRCS:.cpp=.o)
-HEADERS=$(wildcard include/*.hpp)
+HEADERS=$(wildcard include/berkelium/*.hpp) $(wildcard src/*.hpp)
 
 TARGET=libberkelium.so
 
