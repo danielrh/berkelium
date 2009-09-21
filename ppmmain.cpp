@@ -2,16 +2,71 @@
 
 #include "berkelium/Berkelium.hpp"
 #include "berkelium/Window.hpp"
+#include "berkelium/WindowDelegate.hpp"
 #include "berkelium/Context.hpp"
+
+#include <iostream>
+
+using namespace Berkelium;
+
+class TestDelegate : public WindowDelegate {
+    std::string mURL;
+public:
+
+    virtual void onAddressBarChanged(Window *win, const std::string &newURL) {
+        mURL = newURL;
+        std::cout << "*** onAddressChanged to "<<mURL<<std::endl;
+    }
+
+    virtual void onStartLoading(Window *win, const std::string &newURL) {
+        std::cout << "*** Start loading "<<newURL<<" from "<<mURL<<std::endl;
+    }
+    virtual void onLoad(Window *win) {
+        std::cout << "*** onLoad "<<mURL<<std::endl;
+        if (mURL.find("yahoo") != std::string::npos) {
+            return;
+        }
+        if (mURL.find("google") == std::string::npos) {
+            win->navigateTo("http://google.com");
+            return;
+        }
+        if (mURL.find("yahoo") == std::string::npos) {
+            win->navigateTo("http://yahoo.com");
+        }
+    }
+    virtual void onLoadError(Window *win, const std::string &error) {
+        std::cout << "*** onLoadError "<<mURL<<": "<<error<<std::endl;
+    }
+
+    virtual void onPaint(Window *win) {
+        std::cout << "*** onPaint "<<mURL<<std::endl;
+    }
+
+    virtual void onBeforeUnload(Window *win, bool *proceed) {
+        std::cout << "*** onBeforeUnload "<<mURL<<std::endl;
+        *proceed = true;
+    }
+    virtual void onCancelUnload(Window *win) {
+        std::cout << "*** onCancelUnload "<<mURL<<std::endl;
+    }
+    virtual void onCrashed(Window *win) {
+        std::cout << "*** onCrashed "<<mURL<<std::endl;
+    }
+
+    virtual void onCreatedWindow(Window *win, Window *newWindow) {
+        std::cout << "*** onCreatedWindow from source "<<mURL<<std::endl;
+        newWindow->setDelegate(new TestDelegate);
+    }
+};
 
 #define WIDTH 1024
 #define HEIGHT 768
 int main () {
-    using namespace Berkelium;
     Berkelium::init();
     Window* win=Window::create();
     win->resize(800,600);
-    win->navigateTo("http://sirikata.com");
+    win->setDelegate(new TestDelegate);
+    win->navigateTo("http://xkcd.com");
     //win->navigateTo("http://google.com");
 
 /*

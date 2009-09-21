@@ -3,6 +3,7 @@
 #include "RenderWidget.hpp"
 #include "WindowImpl.hpp"
 #include "Root.hpp"
+#include "berkelium/WindowDelegate.hpp"
 
 #include "base/file_util.h"
 #include "net/base/net_util.h"
@@ -186,24 +187,78 @@ void WindowImpl::UpdateMaxPageIDIfNecessary(SiteInstance* site_instance,
 #endif
 }
 
-    
+
+// See 'Browser::BeforeUnloadFired' in chrome/browser/browser.cc
+// for an example of how to properly handle beforeUnload and unload
+// in the case of the user closing a whole window.
+
 void WindowImpl::BeforeUnloadFiredFromRenderManager(
     bool proceed,
     bool* proceed_to_fire_unload)
 {
+    *proceed_to_fire_unload = proceed;
+    if (mDelegate) {
+        if (proceed) {
+            mDelegate->onBeforeUnload(this, proceed_to_fire_unload);
+        } else {
+            mDelegate->onCancelUnload(this);
+        }
+    }
 }
 void WindowImpl::DidStartLoadingFromRenderManager(
     RenderViewHost* render_view_host) {
+
+    DidStartLoading(render_view_host);
+}
+
+void WindowImpl::DidStartLoading(
+    RenderViewHost* render_view_host) {
+
+    mRenderManager->SetIsLoading(true);
+
+    if (mDelegate) {
+//        mDelegate->onStartLoading(this);
+    }
+}
+void WindowImpl::DidStopLoading(
+    RenderViewHost* render_view_host) {
+
+    mRenderManager->SetIsLoading(false);
+
+/*
+    if (mDelegate) {
+        mDelegate->onStopLoading(this);
+    }
+*/
 }
 void WindowImpl::RenderViewGoneFromRenderManager(
-        RenderViewHost* render_view_host) {
+    RenderViewHost* render_view_host) {
+    if (render_view_host != mRenderManager->current_host()) {
+        return; // The pending destination page crashed: don't care.
+    }
+    if (mDelegate) {
+        mDelegate->onCrashed(this);
+    }
 }
 void WindowImpl::UpdateRenderViewSizeForRenderManager() {
     SetContainerBounds(mRect);
 }
-void WindowImpl::NotifySwappedFromRenderManager() {
-}
 void WindowImpl::NotifyRenderViewHostSwitchedFromRenderManager(RenderViewHostSwitchedDetails*details) {
+    // Called in two cases:
+    //   * We called Navigate() and the old_host is null.
+    //   * We just switched to a new renderer (e.g. via a cross domain link)
+
+    // Two members: details->old_host, details->new_host
+
+    // Note: RenderWidget::Hide() and ::Show() will also likely be called
+    // in these cases.
+}
+void WindowImpl::NotifySwappedFromRenderManager() {
+    // Called after NotifyRenderViewHostSwitchedFromRenderManager, but now
+    // the old RenderViewHost has been deleted.
+    // (only called if there was a previous host, not in a fresh window)
+
+    // Used in Chrome just to update the task manager process groupings.
 }
 Profile* WindowImpl::GetProfileForRenderManager() const{
     return profile();
@@ -245,19 +300,39 @@ void WindowImpl::DidStartProvisionalLoadForFrame(
         RenderViewHost* render_view_host,
         bool is_main_frame,
         const GURL& url) {
+    if (!is_main_frame) {
+        return;
+    }
+    if (render_view_host != mRenderManager->current_host()) {
+        return;
+    }
+    mDelegate->onStartLoading(this, url.spec());
+    if (mDelegate) {
+        mDelegate->onAddressBarChanged(this, url.spec());
+    }
 }
 
 void WindowImpl::DidStartReceivingResourceResponse(
         ResourceRequestDetails* details) {
+    // See "chrome/browser/renderer_host/resource_request_details.h"
+    // for list of accessor functions.
 }
 
 void WindowImpl::DidRedirectProvisionalLoad(
     int32 page_id,
     const GURL& source_url,
-    const GURL& target_url) {
+    const GURL& target_url)
+{
+    // should use page_id to lookup in history
+    NavigationEntry *entry = mNavEntry;
+    if (entry->url() == source_url) {
+        entry->set_url(target_url);
+    }
 }
 
 void WindowImpl::DidRedirectResource(ResourceRequestDetails* details) {
+    // Only accessor function:
+    // details->new_url();
 }
 
 void WindowImpl::DidLoadResourceFromMemoryCache(
@@ -273,42 +348,60 @@ void WindowImpl::DidFailProvisionalLoadWithError(
         int error_code,
         const GURL& url,
         bool showing_repost_interstitial) {
+    mRenderManager->RendererAbortedProvisionalLoad(render_view_host);
 }
 
 void WindowImpl::DocumentLoadedInFrame() {
+    if (mDelegate) {
+        mDelegate->onLoad(this);
+    }
 }
 
 /******* RenderViewHostDelegate::View *******/
 void WindowImpl::CreateNewWindow(int route_id,
                                  base::WaitableEvent* modal_dialog_event) {
+    // TODO: Support multiple windows.
 }
 void WindowImpl::CreateNewWidget(int route_id, bool activatable) {
+    // TODO: Support multiple windows.
 }
 void WindowImpl::ShowCreatedWindow(int route_id,
                                    WindowOpenDisposition disposition,
                                    const gfx::Rect& initial_pos,
                                    bool user_gesture,
                                    const GURL& creator_url) {
+    WindowImpl *win = new WindowImpl(getContext());
+    win->resize(initial_pos.width(), initial_pos.height());
+    if (mDelegate) {
+        mDelegate->onCreatedWindow(this, win);
+    }
 }
 void WindowImpl::ShowCreatedWidget(int route_id,
                                    const gfx::Rect& initial_pos) {
 }
 void WindowImpl::ShowContextMenu(const ContextMenuParams& params) {
+    // TODO: Add context menu event
 }
 void WindowImpl::StartDragging(const WebDropData& drop_data,
                                WebKit::WebDragOperationsMask allowed_ops) {
+    // TODO: Add dragging event
 }
 void WindowImpl::UpdateDragCursor(WebKit::WebDragOperation operation) {
+    // TODO: Add dragging event
 }
 void WindowImpl::GotFocus() {
+    // Useless: just calls this when we hand it an input event.
 }
 void WindowImpl::TakeFocus(bool reverse) {
 }
 void WindowImpl::HandleKeyboardEvent(const NativeWebKeyboardEvent& event) {
+    // Useless: just calls this when we hand it an input event.
 }
 void WindowImpl::HandleMouseEvent() {
+    // Useless: just calls this when we hand it an input event.
 }
 void WindowImpl::HandleMouseLeave() {
+    // Useless: just calls this when we hand it an input event.
 }
 void WindowImpl::UpdatePreferredWidth(int pref_width) {
 }

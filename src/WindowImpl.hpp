@@ -9,9 +9,12 @@
 #include "chrome/browser/tab_contents/render_view_host_manager.h"
 #include "chrome/browser/tab_contents/navigation_controller.h"
 
+class RenderProcessHost;
+
 namespace Berkelium {
 class WindowView;
 class RenderWidget;
+class MemoryRenderViewHost;
 
 class WindowImpl :
         public Window,
@@ -35,6 +38,9 @@ public:
     bool navigateTo(const std::string &url);
 
     Profile *profile() const;
+    RenderProcessHost *process() const;
+    RenderWidget *renderWidgetHostView() const;
+    MemoryRenderViewHost *renderViewHost() const;
 
     bool doNavigateTo(
         const GURL &newURL,
@@ -53,7 +59,7 @@ protected: /******* RenderViewHostManager::Delegate *******/
         RenderViewHost* render_view_host);
     void UpdateMaxPageIDIfNecessary(SiteInstance* site_instance,
                                     RenderViewHost* rvh);
-    
+
     virtual void BeforeUnloadFiredFromRenderManager(
         bool proceed, bool* proceed_to_fire_unload);
     virtual void DidStartLoadingFromRenderManager(
@@ -74,6 +80,9 @@ protected: /******* RenderViewHostDelegate *******/
 
     virtual RenderViewHostDelegate::View* GetViewDelegate();
     virtual RenderViewHostDelegate::Resource* GetResourceDelegate();
+
+    virtual void DidStartLoading(RenderViewHost* render_view_host);
+    virtual void DidStopLoading(RenderViewHost* render_view_host);
 
   // Functions for managing switching of Renderers. For TabContents, this is
   // implemented by the RenderViewHostManager

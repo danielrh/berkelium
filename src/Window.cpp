@@ -16,9 +16,11 @@ Window* Window::create(const Context &otherContext) {
 
 Window::Window() {
     mContext=NULL;
+    mDelegate=NULL;
 }
 Window::Window(const Context*otherContext) {
     mContext=otherContext->clone();
+    mDelegate=NULL;
 }
 
 Window::~Window() {
