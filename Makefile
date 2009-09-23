@@ -41,7 +41,7 @@ endif
 CHROMIUMLDFLAGS=-L$(CHROMIUMLIBPATH)
 TPLIBS=-levent -lxslt -ljpeg -lpng -lz -lxml2 -lbz2
 endif
-CHROMIUMLIBS=$(CHROMIUMLDFLAGS) $(TPLIBS) -lsmime3 -lplds4 -lplc4 -lnspr4 -lpthread -ldl -lgdk-x11-2.0 -lgdk_pixbuf-2.0 -lm -lpangocairo-1.0 -lgio-2.0 -lpango-1.0 -lcairo -lgobject-2.0 -lgmodule-2.0 -lglib-2.0 -lfontconfig -lfreetype -lrt -lgconf-2 -lglib-2.0 -lX11 -lasound -lcommon -lbrowser -ldebugger -lrenderer -lutility -lprinting -lapp_base -lbase -licui18n -licuuc -licudata -lbase_gfx -lskia -llinux_versioninfo -lharfbuzz -lharfbuzz_interface -lnet -lgoogleurl -lsdch -lmodp_b64 -lv8_snapshot -lv8_base -lglue -lwebcore -lpcre -lwtf -lsqlite -lwebkit -lmedia -lffmpeg -lhunspell -lplugin -l appcache -lipc
+CHROMIUMLIBS=$(CHROMIUMLDFLAGS) $(TPLIBS) -lsmime3 -lplds4 -lplc4 -lnspr4 -lpthread -ldl -lgdk-x11-2.0 -lgdk_pixbuf-2.0 -lm -lpangocairo-1.0 -lgio-2.0 -lpango-1.0 -lcairo -lgobject-2.0 -lgmodule-2.0 -lglib-2.0 -lfontconfig -lfreetype -lrt -lgconf-2 -lglib-2.0 -lX11 -lasound -lcommon -lbrowser -ldebugger -lrenderer -lutility -lprinting -lapp_base -lbase -licui18n -licuuc -licudata -lbase_gfx -lskia -llinux_versioninfo -lharfbuzz -lharfbuzz_interface -lnet -lgoogleurl -lsdch -lmodp_b64 -lv8_snapshot -lv8_base -lglue -lwebcore -lpcre -lwtf -lsqlite -lwebkit -lmedia -lffmpeg -lhunspell -lplugin -l appcache -lipc -ldatabase
 # Flags that affect both compiling and linking
 CLIBFLAGS=$(ARCHFLAGS) -fvisibility=hidden -fvisibility-inlines-hidden -fPIC -pthread -Wall -fno-rtti
 
@@ -49,25 +49,31 @@ CFLAGS=$(DEBUGFLAGS) $(CLIBFLAGS) -Wall -D_REENTRANT -D__STDC_FORMAT_MACROS -DCH
 
 LIBS=-shared $(CLIBFLAGS) -g -Wl,--start-group `pkg-config --libs gtk+-2.0 glib-2.0 gio-unix-2.0 gconf-2.0` -lssl3 -lnss3 -lnssutil3 $(CHROMIUMLIBS) -Wl,--end-group
 
+OBJDIR=$(CHROMIUMMODE)
+EXEDIR=$(CHROMIUMMODE)
+
 SRCS=$(wildcard src/*.cpp)
-OBJS=$(SRCS:.cpp=.o)
+OBJS=$(addprefix $(OBJDIR)/,$(notdir $(SRCS:.cpp=.o)))
 HEADERS=$(wildcard include/berkelium/*.hpp) $(wildcard src/*.hpp)
 
-TARGET=libberkelium.so
+TARGET=$(EXEDIR)/libberkelium.so
 
 #all: mymain
 
 all: $(TARGET) ppmrender 
 
-$(TARGET): $(OBJS)
+$(TARGET): $(OBJS) Makefile
+	mkdir --parents $(EXEDIR)
 	g++ $(OBJS) $(LIBS) -o $@
 
-%.o: %.cpp $(HEADERS)
+#src/%.cpp $(HEADERS)
+$(OBJDIR)/%.o: src/%.cpp
+	@mkdir --parents $(OBJDIR)||true
 	g++ $(CFLAGS) -DBERKELIUM_BUILD -c $< -o $@
 
 clean:
 	rm -f $(OBJS) $(TARGET)
 
 ppmrender: $(OBJS) ppmmain.cpp $(TARGET)
-	g++ $(CFLAGS) -L. -lberkelium ppmmain.cpp -o ppmrender
+	g++ -g $(CFLAGS) -L$(EXEDIR) -lberkelium ppmmain.cpp -o ppmrender
 
