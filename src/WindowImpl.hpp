@@ -10,6 +10,7 @@
 #include "chrome/browser/tab_contents/navigation_controller.h"
 
 class RenderProcessHost;
+class Profile;
 
 namespace Berkelium {
 class WindowView;
@@ -39,8 +40,8 @@ public:
 
     Profile *profile() const;
     RenderProcessHost *process() const;
-    RenderWidget *renderWidgetHostView() const;
-    MemoryRenderViewHost *renderViewHost() const;
+    RenderWidgetHostView *view() const;
+    RenderViewHost *host() const;
 
     bool doNavigateTo(
         const GURL &newURL,

@@ -2,6 +2,7 @@
 #include "ContextImpl.hpp"
 #include "RenderWidget.hpp"
 #include "WindowImpl.hpp"
+#include "MemoryRenderViewHost.hpp"
 #include "Root.hpp"
 #include "berkelium/WindowDelegate.hpp"
 
@@ -36,6 +37,20 @@ WindowImpl::~WindowImpl() {
     delete mNavEntry;
 }
 
+RenderProcessHost *WindowImpl::process() const {
+    return host()->process();
+}
+RenderWidgetHostView *WindowImpl::view() const {
+    if (!host()) {
+        return NULL;
+    }
+    return host()->view();
+}
+RenderViewHost *WindowImpl::host() const {
+    return mRenderManager->current_host();
+}
+
+
 void MakeNavigateParams(const NavigationEntry& entry, bool reload,
                         ViewMsg_Navigate_Params* params) {
   params->page_id = entry.page_id();
@@ -53,13 +68,13 @@ void WindowImpl::resize(int width, int height) {
 
 void WindowImpl::SetContainerBounds (const gfx::Rect &rc) {
     mRect = rc;
-    RenderWidgetHostView* view = mRenderManager->current_view();
-    if (view) {
-        view->SetSize(this->GetContainerSize());
+    RenderWidgetHostView* myview = view();
+    if (myview) {
+        myview->SetSize(this->GetContainerSize());
     }
-    RenderViewHost* host = mRenderManager->current_host();
-    if (host) {
-        host->WasResized();
+    RenderViewHost* myhost = host();
+    if (myhost) {
+        myhost->WasResized();
     }
 }
 
@@ -136,11 +151,6 @@ ContextImpl *WindowImpl::getContextImpl() const {
 
 bool WindowImpl::CreateRenderViewForRenderManager(
     RenderViewHost* render_view_host) {
-  // If the pending navigation is to a DOMUI, tell the RenderView about any
-  // bindings it will need enabled.
-  if (mRenderManager->pending_dom_ui())
-    render_view_host->AllowBindings(
-        mRenderManager->pending_dom_ui()->bindings());
 
   RenderWidget* rwh_view = 
       static_cast<RenderWidget*>(this->CreateViewForWidget(render_view_host));
@@ -233,7 +243,7 @@ void WindowImpl::DidStopLoading(
 }
 void WindowImpl::RenderViewGoneFromRenderManager(
     RenderViewHost* render_view_host) {
-    if (render_view_host != mRenderManager->current_host()) {
+    if (render_view_host != static_cast<RenderViewHost*>(host())) {
         return; // The pending destination page crashed: don't care.
     }
     if (mDelegate) {
@@ -303,7 +313,7 @@ void WindowImpl::DidStartProvisionalLoadForFrame(
     if (!is_main_frame) {
         return;
     }
-    if (render_view_host != mRenderManager->current_host()) {
+    if (render_view_host != static_cast<RenderViewHost*>(host())) {
         return;
     }
     mDelegate->onStartLoading(this, url.spec());
