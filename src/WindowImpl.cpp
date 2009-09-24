@@ -14,16 +14,17 @@
 #include "chrome/browser/dom_ui/dom_ui.h"
 #include "chrome/browser/dom_ui/dom_ui_factory.h"
 #include "chrome/browser/renderer_host/render_widget_host_view.h"
+#include "chrome/browser/renderer_host/render_view_host_factory.h"
 #include "chrome/browser/browser_url_handler.h"
 namespace Berkelium {
 //WindowImpl temp;
 void WindowImpl::init(SiteInstance*site) {
-    mRenderManager.reset(new RenderViewHostManager(this,this));
-
-    mRenderManager->Init(profile(),
-                          site,
-                          MSG_ROUTING_NONE,
-                          NULL);
+    mRenderViewHost = RenderViewHostFactory::Create(
+        site,
+        this,
+        MSG_ROUTING_NONE,
+        NULL);
+    CreateRenderViewForRenderManager(host());
 }
 
 WindowImpl::WindowImpl(const Context*otherContext):Window(otherContext) {
@@ -32,7 +33,10 @@ WindowImpl::WindowImpl(const Context*otherContext):Window(otherContext) {
     mNavEntry = NULL;
 }
 WindowImpl::~WindowImpl() {
-    mRenderManager.reset();
+    RenderViewHost* render_view_host = mRenderViewHost;
+    mRenderViewHost = NULL;
+    render_view_host->Shutdown();
+
     delete mLastNavEntry;
     delete mNavEntry;
 }
@@ -47,7 +51,16 @@ RenderWidgetHostView *WindowImpl::view() const {
     return host()->view();
 }
 RenderViewHost *WindowImpl::host() const {
-    return mRenderManager->current_host();
+    return mRenderViewHost;
+}
+
+int WindowImpl::GetBrowserWindowID() const {
+    // FIXME!!!!
+    return 0;
+}
+
+ViewType::Type WindowImpl::GetRenderViewType()const {
+    return ViewType::TAB_CONTENTS;
 }
 
 
@@ -86,6 +99,9 @@ bool WindowImpl::doNavigateTo(
         const GURL &referrerURL,
         bool reload)
 {
+    if (view()) {
+        view()->Hide();
+    }
     if (mLastNavEntry) {
         delete mLastNavEntry;
     }
@@ -100,15 +116,17 @@ bool WindowImpl::doNavigateTo(
         return false;
     }
 
-    RenderViewHost* dest_render_view_host = mRenderManager->Navigate(*mNavEntry);
-    if (!dest_render_view_host) {
+    if (!host()) {
         return false;  // Unable to create the desired render view host.
     }
 
     // Navigate in the desired RenderViewHost.
     ViewMsg_Navigate_Params navigate_params;
     MakeNavigateParams(*mNavEntry, reload, &navigate_params);
-    dest_render_view_host->Navigate(navigate_params);
+    host()->Navigate(navigate_params);
+    if (view()) {
+        view()->Show();
+    }
     return true;
 }
 
@@ -162,46 +180,18 @@ bool WindowImpl::CreateRenderViewForRenderManager(
   rwh_view->SetSize(this->GetContainerSize());
   render_view_host->set_view(rwh_view);
 
-  UpdateMaxPageIDIfNecessary(render_view_host->site_instance(),
-                             render_view_host);
+//  UpdateMaxPageIDIfNecessary(render_view_host->site_instance(),
+//                             render_view_host);
   return true;
 
 }
 
-void WindowImpl::UpdateMaxPageIDIfNecessary(SiteInstance* site_instance,
-                                             RenderViewHost* rvh) {
-  // If we are creating a RVH for a restored controller, then we might
-  // have more page IDs than the SiteInstance's current max page ID.  We must
-  // make sure that the max page ID is larger than any restored page ID.
-  // Note that it is ok for conflicting page IDs to exist in another tab
-  // (i.e., NavigationController), but if any page ID is larger than the max,
-  // the back/forward list will get confused.
-
-#if 0
-    int max_restored_page_id = controller_.max_restored_page_id();
-  if (max_restored_page_id > 0) {
-
-    int curr_max_page_id = site_instance->max_page_id();
-    if (max_restored_page_id > curr_max_page_id) {
-      // Need to update the site instance immediately.
-      site_instance->UpdateMaxPageID(max_restored_page_id);
-
-      // Also tell the renderer to update its internal representation.  We
-      // need to reserve enough IDs to make all restored page IDs less than
-      // the max.
-      if (curr_max_page_id < 0)
-        curr_max_page_id = 0;
-      rvh->ReservePageIDRange(max_restored_page_id - curr_max_page_id);
-    }
-  }
-#endif
-}
 
 
 // See 'Browser::BeforeUnloadFired' in chrome/browser/browser.cc
 // for an example of how to properly handle beforeUnload and unload
 // in the case of the user closing a whole window.
-
+/*
 void WindowImpl::BeforeUnloadFiredFromRenderManager(
     bool proceed,
     bool* proceed_to_fire_unload)
@@ -215,16 +205,12 @@ void WindowImpl::BeforeUnloadFiredFromRenderManager(
         }
     }
 }
-void WindowImpl::DidStartLoadingFromRenderManager(
-    RenderViewHost* render_view_host) {
-
-    DidStartLoading(render_view_host);
-}
+*/
 
 void WindowImpl::DidStartLoading(
     RenderViewHost* render_view_host) {
 
-    mRenderManager->SetIsLoading(true);
+    render_view_host->SetIsLoading(true);
 
     if (mDelegate) {
 //        mDelegate->onStartLoading(this);
@@ -233,7 +219,7 @@ void WindowImpl::DidStartLoading(
 void WindowImpl::DidStopLoading(
     RenderViewHost* render_view_host) {
 
-    mRenderManager->SetIsLoading(false);
+    render_view_host->SetIsLoading(true);
 
 /*
     if (mDelegate) {
@@ -241,6 +227,7 @@ void WindowImpl::DidStopLoading(
     }
 */
 }
+/*
 void WindowImpl::RenderViewGoneFromRenderManager(
     RenderViewHost* render_view_host) {
     if (render_view_host != static_cast<RenderViewHost*>(host())) {
@@ -250,46 +237,7 @@ void WindowImpl::RenderViewGoneFromRenderManager(
         mDelegate->onCrashed(this);
     }
 }
-void WindowImpl::UpdateRenderViewSizeForRenderManager() {
-    SetContainerBounds(mRect);
-}
-void WindowImpl::NotifyRenderViewHostSwitchedFromRenderManager(RenderViewHostSwitchedDetails*details) {
-    // Called in two cases:
-    //   * We called Navigate() and the old_host is null.
-    //   * We just switched to a new renderer (e.g. via a cross domain link)
-
-    // Two members: details->old_host, details->new_host
-
-    // Note: RenderWidget::Hide() and ::Show() will also likely be called
-    // in these cases.
-}
-void WindowImpl::NotifySwappedFromRenderManager() {
-    // Called after NotifyRenderViewHostSwitchedFromRenderManager, but now
-    // the old RenderViewHost has been deleted.
-    // (only called if there was a previous host, not in a fresh window)
-
-    // Used in Chrome just to update the task manager process groupings.
-}
-Profile* WindowImpl::GetProfileForRenderManager() const{
-    return profile();
-}
-NavigationEntry* WindowImpl::GetEntryAtOffsetForRenderManager(int offset) {
-    return mNavEntry;
-}
-DOMUI* WindowImpl::CreateDOMUIForRenderManager(const GURL& url) {
-    return NULL;
-}
-NavigationEntry* WindowImpl::GetLastCommittedNavigationEntryForRenderManager() {
-    return mNavEntry;
-}
-
-int WindowImpl::GetBrowserWindowID() const {
-    // FIXME!!!!
-    return 0; //controller_.window_id().id();
-}
-ViewType::Type WindowImpl::GetRenderViewType()const {
-    return ViewType::TAB_CONTENTS;
-}
+*/
 
 /******* RenderViewHostDelegate *******/
 
@@ -358,7 +306,6 @@ void WindowImpl::DidFailProvisionalLoadWithError(
         int error_code,
         const GURL& url,
         bool showing_repost_interstitial) {
-    mRenderManager->RendererAbortedProvisionalLoad(render_view_host);
 }
 
 void WindowImpl::DocumentLoadedInFrame() {

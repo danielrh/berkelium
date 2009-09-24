@@ -6,7 +6,6 @@
 #include "chrome/browser/renderer_host/render_widget_host.h"
 #include "chrome/browser/renderer_host/render_view_host.h"
 #include "chrome/browser/renderer_host/render_view_host_delegate.h"
-#include "chrome/browser/tab_contents/render_view_host_manager.h"
 #include "chrome/browser/tab_contents/navigation_controller.h"
 
 class RenderProcessHost;
@@ -19,7 +18,6 @@ class MemoryRenderViewHost;
 
 class WindowImpl :
         public Window,
-        public RenderViewHostManager::Delegate,
         public RenderViewHostDelegate,
         public RenderViewHostDelegate::Resource,
         public RenderViewHostDelegate::View
@@ -54,29 +52,8 @@ public:
 protected:
     ContextImpl *getContextImpl() const;
 
-protected: /******* RenderViewHostManager::Delegate *******/
+    bool CreateRenderViewForRenderManager(RenderViewHost* render_view_host);
 
-    virtual bool CreateRenderViewForRenderManager(
-        RenderViewHost* render_view_host);
-    void UpdateMaxPageIDIfNecessary(SiteInstance* site_instance,
-                                    RenderViewHost* rvh);
-
-    virtual void BeforeUnloadFiredFromRenderManager(
-        bool proceed, bool* proceed_to_fire_unload);
-    virtual void DidStartLoadingFromRenderManager(
-        RenderViewHost* render_view_host);
-    virtual void RenderViewGoneFromRenderManager(
-        RenderViewHost* render_view_host);
-    virtual void UpdateRenderViewSizeForRenderManager();
-    virtual void NotifySwappedFromRenderManager();
-    virtual void NotifyRenderViewHostSwitchedFromRenderManager(RenderViewHostSwitchedDetails*details);
-    virtual Profile* GetProfileForRenderManager() const;
-    virtual NavigationEntry* GetEntryAtOffsetForRenderManager(int offset);
-    virtual DOMUI* CreateDOMUIForRenderManager(const GURL& url);
-    virtual NavigationEntry*
-        GetLastCommittedNavigationEntryForRenderManager();
-    virtual int GetBrowserWindowID() const;
-    ViewType::Type GetRenderViewType()const;
 protected: /******* RenderViewHostDelegate *******/
 
     virtual RenderViewHostDelegate::View* GetViewDelegate();
@@ -90,6 +67,9 @@ protected: /******* RenderViewHostDelegate *******/
 //  virtual RendererManagement* GetRendererManagementDelegate();
   // Functions that integrate with other browser services.
 //  virtual BrowserIntegration* GetBrowserIntegrationDelegate();
+
+    virtual int GetBrowserWindowID() const;
+    ViewType::Type GetRenderViewType()const;
 
 protected: /******* RenderViewHostDelegate::Resource *******/
 
@@ -161,7 +141,7 @@ private:
     NavigationEntry *mNavEntry;
 
     // Manages creation and swapping of render views.
-    scoped_ptr<RenderViewHostManager> mRenderManager;
+    RenderViewHost *mRenderViewHost;
 
 };
 

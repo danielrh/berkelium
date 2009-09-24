@@ -22,6 +22,7 @@ public:
         std::cout << "*** Start loading "<<newURL<<" from "<<mURL<<std::endl;
     }
     virtual void onLoad(Window *win) {
+        sleep(3);
         std::cout << "*** onLoad "<<mURL<<std::endl;
         if (mURL.find("yahoo") != std::string::npos) {
             return;
