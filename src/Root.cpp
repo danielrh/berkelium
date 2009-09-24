@@ -16,6 +16,7 @@
 #include "chrome/browser/browser_process_impl.h"
 #include "chrome/browser/process_singleton.h"
 #include "chrome/browser/profile_manager.h"
+#include "chrome/browser/plugin_service.h"
 #include "chrome/browser/renderer_host/browser_render_process_host.h"
 #include "chrome/browser/chrome_thread.h"
 #include "chrome/browser/browser_url_handler.h"
@@ -25,28 +26,45 @@
 #include "chrome/common/logging_chrome.h"
 #include "base/logging.h"
 
+#include <sys/stat.h>
+
 //icu_util::Initialize()
+
+extern "C"
+void handleINT(int sig) {
+    FilePath homedirpath;
+    PathService::Get(chrome::DIR_USER_DATA,&homedirpath);
+    FilePath child = homedirpath.AppendASCII("SingletonLock");
+    unlink(child.value().c_str());
+    exit(-sig);
+}
 
 AUTO_SINGLETON_INSTANCE(Berkelium::Root);
 namespace Berkelium {
 
 Root::Root (){
     new base::AtExitManager();
-/*
-    base::Thread *coreThread = new base::Thread("CoreThread");
-	coreThread->StartWithOptions(base::Thread::Options(MessageLoop::TYPE_UI, 0));
-*/
+
+/// Temporary SingletonLock fix:
+// Do not do this for child processes--they should only be initialized.
+// Children should never delete the lock.
+    if (signal(SIGINT, handleINT) == SIG_IGN) {
+        signal(SIGINT, SIG_IGN);
+    }
+    if (signal(SIGHUP, handleINT) == SIG_IGN) {
+        signal(SIGHUP, SIG_IGN);
+    }
+    if (signal(SIGTERM, handleINT) == SIG_IGN) {
+        signal(SIGTERM, SIG_IGN);
+    }
+
+
     chrome::RegisterPathProvider();
     app::RegisterPathProvider();
     FilePath homedirpath;
     PathService::Get(chrome::DIR_USER_DATA,&homedirpath);
 
     RenderProcessHost::set_run_renderer_in_process(true);
-
-//////// FIXME: HACK HACK HACK ///////////
-    FilePath child = homedirpath.AppendASCII("SingletonLock");
-    unlink(child.value().c_str());
-
 
     mProcessSingleton= new ProcessSingleton(homedirpath);
     BrowserProcess *browser_process;
@@ -109,6 +127,22 @@ Root::Root (){
     mProcessSingleton->Create();
 
     BrowserURLHandler::InitURLHandlers();
+
+    ResourceDispatcherHost *resDispatcher =
+        new ResourceDispatcherHost(ChromeThread::GetMessageLoop(ChromeThread::IO));
+    resDispatcher->Initialize();
+    {
+        char dir[L_tmpnam+1];
+        tmpnam(dir);
+        mkdir(dir
+#ifndef OS_WIN
+              ,0777
+#endif
+            );
+        FilePath path(dir);
+        PluginService::GetInstance()->SetChromePluginDataDir(path);
+    }
+    PluginService::GetInstance()->LoadChromePlugins(resDispatcher);
 }
 
 void Root::runUIMessageLoop() {

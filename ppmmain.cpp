@@ -63,6 +63,7 @@ public:
 #define WIDTH 1024
 #define HEIGHT 768
 int main () {
+    printf("RUNNING MAIN!\n");
     Berkelium::init();
     Window* win=Window::create();
     win->resize(800,600);
