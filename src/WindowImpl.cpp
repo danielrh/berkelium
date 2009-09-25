@@ -264,8 +264,8 @@ void WindowImpl::DidStartProvisionalLoadForFrame(
     if (render_view_host != static_cast<RenderViewHost*>(host())) {
         return;
     }
-    mDelegate->onStartLoading(this, url.spec());
     if (mDelegate) {
+        mDelegate->onStartLoading(this, url.spec());
         mDelegate->onAddressBarChanged(this, url.spec());
     }
 }
