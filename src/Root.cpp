@@ -43,6 +43,12 @@ AUTO_SINGLETON_INSTANCE(Berkelium::Root);
 namespace Berkelium {
 
 Root::Root (){
+
+    {
+        const char* argv[] = { "berkelium", "--browser-subprocess-path=./berkelium" };
+        CommandLine::Init(2, argv);
+    }
+
     new base::AtExitManager();
 
 /// Temporary SingletonLock fix:
@@ -64,19 +70,15 @@ Root::Root (){
     FilePath homedirpath;
     PathService::Get(chrome::DIR_USER_DATA,&homedirpath);
 
-    RenderProcessHost::set_run_renderer_in_process(true);
+    //RenderProcessHost::set_run_renderer_in_process(true);
 
     mProcessSingleton= new ProcessSingleton(homedirpath);
     BrowserProcess *browser_process;
-    {
-        const char* argv[] = { "berkelium" };
-        CommandLine::Init(1, argv);
-        browser_process=new BrowserProcessImpl(*CommandLine::ForCurrentProcess());
-        browser_process->local_state()->RegisterStringPref(prefs::kApplicationLocale, L"");
-        browser_process->local_state()->RegisterBooleanPref(prefs::kMetricsReportingEnabled, false);
+    browser_process=new BrowserProcessImpl(*CommandLine::ForCurrentProcess());
+    browser_process->local_state()->RegisterStringPref(prefs::kApplicationLocale, L"");
+    browser_process->local_state()->RegisterBooleanPref(prefs::kMetricsReportingEnabled, false);
 
-        assert(g_browser_process);
-    }
+    assert(g_browser_process);
 
 #ifdef OS_WIN
     logging::InitLogging(
@@ -143,6 +145,8 @@ Root::Root (){
         PluginService::GetInstance()->SetChromePluginDataDir(path);
     }
     PluginService::GetInstance()->LoadChromePlugins(resDispatcher);
+
+    PathService::Override(base::FILE_EXE, FilePath("./berkelium"));
 }
 
 void Root::runUIMessageLoop() {

@@ -1,0 +1,132 @@
+Index: sandbox/linux/seccomp/library.cc
+===================================================================
+--- sandbox/linux/seccomp/library.cc	(revision 26900)
++++ sandbox/linux/seccomp/library.cc	(working copy)
+@@ -77,6 +77,7 @@
+ char* Library::__kernel_sigreturn;
+ char* Library::__kernel_rt_sigreturn;
+ 
++int helper_socket[2] = {0, 0};
+ char* Library::getBytes(char* dst, const char* src, ssize_t len) {
+   // Some kernels don't allow accessing the VDSO from write()
+   if (isVDSO_ &&
+@@ -94,7 +95,6 @@
+   // Read up to "len" bytes from "src" and copy them to "dst". Short
+   // copies are possible, if we are at the end of a mapping. Returns
+   // NULL, if the operation failed completely.
+-  static int helper_socket[2];
+   Sandbox::SysCalls sys;
+   if (!helper_socket[0] && !helper_socket[1]) {
+     // Copy data through a socketpair, as this allows us to access it
+Index: sandbox/linux/seccomp/sandbox.cc
+===================================================================
+--- sandbox/linux/seccomp/sandbox.cc	(revision 26900)
++++ sandbox/linux/seccomp/sandbox.cc	(working copy)
+@@ -148,7 +148,7 @@
+     "0:"
+ #ifndef NDEBUG
+       "lea  100f(%%rip), %%rdi\n"
+-      "call playground$debugMessage\n"
++      "call playground$debugMessage@PLT\n"
+ #endif
+       "sub  $4, %%rsp\n"
+       "push %%r14\n"
+@@ -198,7 +198,7 @@
+       "jnz  9f\n"
+ #ifndef NDEBUG
+       "lea  200f(%%rip), %%rdi\n"
+-      "call playground$debugMessage\n"
++      "call playground$debugMessage@PLT\n"
+ #endif
+       "mov  0x98(%%rsp), %%rax\n"  // %rax at time of segmentation fault
+       "mov  0x70(%%rsp), %%rdi\n"  // %rdi at time of segmentation fault
+@@ -210,7 +210,7 @@
+       "lea  7b(%%rip), %%rcx\n"
+       "push %%rcx\n"
+       "push 0xB8(%%rsp)\n"         // %rip at time of segmentation fault
+-      "lea  playground$syscallWrapper(%%rip), %%rcx\n"
++      "lea  playground$syscallWrapper@PLT(%%rip), %%rcx\n"
+       "jmp  *%%rcx\n"
+ 
+       // This was a genuine segmentation fault. Trigger the kernel's default
+Index: sandbox/linux/seccomp/syscall.cc
+===================================================================
+--- sandbox/linux/seccomp/syscall.cc	(revision 26900)
++++ sandbox/linux/seccomp/syscall.cc	(working copy)
+@@ -22,7 +22,7 @@
+     // following bytes are the saved register values that we need to restore
+     // upon return from clone() in the new thread.
+     "lea 8(%rsp), %r9\n"
+-    "jmp playground$sandbox__clone\n"
++    "jmp playground$sandbox__clone@PLT\n"
+     #elif defined(__i386__)
+     // As i386 passes function arguments on the stack, we need to skip a few
+     // more values before we can get to the saved registers.
+@@ -64,7 +64,7 @@
+     "mov %r10, %rcx\n"
+ 
+     // Check range of system call
+-    "cmp playground$maxSyscall(%rip), %eax\n"
++    "cmp playground$maxSyscall@PLT(%rip), %eax\n"
+     "ja  1f\n"
+ 
+     // Retrieve function call from system call table (c.f. syscall_table.c).
+@@ -74,7 +74,7 @@
+     // thread; and function pointers to specific handler functions.
+     "mov %rax, %r10\n"
+     "shl $4, %r10\n"
+-    "lea playground$syscallTable(%rip), %r11\n"
++    "lea playground$syscallTable@PLT(%rip), %r11\n"
+     "add %r11, %r10\n"
+     "mov 0(%r10), %r10\n"
+ 
+@@ -122,7 +122,7 @@
+     "mov  %rax, %rdi\n"
+ 
+     // Call default handler.
+-    "call playground$defaultSystemCallHandler\n"
++    "call playground$defaultSystemCallHandler@PLT\n"
+     "pop  %r9\n"
+     "jmp 0b\n"
+     #elif defined(__i386__)
+Index: sandbox/linux/seccomp/trusted_thread.cc
+===================================================================
+--- sandbox/linux/seccomp/trusted_thread.cc	(revision 26900)
++++ sandbox/linux/seccomp/trusted_thread.cc	(working copy)
+@@ -225,10 +225,10 @@
+       "cmpw $0, %%fs:0xD0\n"       // debug mode
+       "jnz  12f\n"
+       #endif
+-      "cmp  playground$maxSyscall(%%rip), %%eax\n"
++      "cmp  playground$maxSyscall@PLT(%%rip), %%eax\n"
+       "ja   25f\n"                 // exit process
+       "shl  $4, %%rax\n"
+-      "lea  playground$syscallTable(%%rip), %%rdi\n"
++      "lea  playground$syscallTable@PLT(%%rip), %%rdi\n"
+       "add  %%rdi, %%rax\n"
+       "mov  0(%%rax), %%rax\n"
+       "cmp  $1, %%rax\n"
+@@ -358,7 +358,7 @@
+       "cmp  $-4, %%eax\n"          // EINTR
+       "jz   21b\n"
+       "jmp  23f\n"                 // exit thread (no message)
+-   "22:lea  playground$syscall_mutex(%%rip), %%rdi\n"
++   "22:lea  playground$syscall_mutex@PLT(%%rip), %%rdi\n"
+       "mov  $4096, %%esi\n"
+       "mov  $3, %%edx\n"           // prot = PROT_READ | PROT_WRITE
+       "mov  $10, %%eax\n"          // NR_mprotect
+@@ -499,12 +499,12 @@
+       "push %%r12\n"               // secure_mem
+       "mov  %%rsp, %%rcx\n"        // buf       = &data
+       "mov  $16, %%r8\n"           // len       = sizeof(void*) + 2*sizeof(int)
+-      "call playground$sendFd\n"
++      "call playground$sendFd@PLT\n"
+ 
+       // Release syscall_mutex_. This signals the trusted process that
+       // it can write into the original thread's secure memory again.
+       "mov  $10, %%eax\n"          // NR_mprotect
+-      "lea  playground$syscall_mutex(%%rip), %%rdi\n"
++      "lea  playground$syscall_mutex@PLT(%%rip), %%rdi\n"
+       "mov  $4096, %%esi\n"
+       "mov  $3, %%edx\n"           // PROT_READ | PROT_WRITE
+       "syscall\n"
