@@ -18,7 +18,7 @@ PLAT=mac
 PLATCFLAGS=-pthread
 SNOW=
 
-PLATLDFLAGS=-dynamiclib -pthread $(CHROMIUMDIR)/src/third_party/WebKit/WebKitLibraries/libWebKitSystemInterface$(SNOW)Leopard.a -framework CoreAudio -framework AudioToolbox -framework Cocoa -framework QuartzCore -framework Security -framework SecurityInterface -framework SystemConfiguration -ObjC -framework Carbon chromium/src/xcodebuild/chrome.build/Debug/chrome_dll.build/Objects-normal/i386/keystone_glue.o
+PLATLDFLAGS=-dynamiclib -pthread $(CHROMIUMDIR)/src/third_party/WebKit/WebKitLibraries/libWebKitSystemInterface$(SNOW)Leopard.a -framework CoreAudio -framework AudioToolbox -framework Cocoa -framework QuartzCore -framework Security -framework SecurityInterface -framework SystemConfiguration -ObjC -framework Carbon chromium/src/xcodebuild/chrome.build/$(CHROMIUMMODE)/chrome_dll.build/Objects-normal/i386/keystone_glue.o
 START_GROUP=
 END_GROUP=
 DLLEXT=dylib

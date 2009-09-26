@@ -109,11 +109,9 @@ Root::Root (){
 //    ChildProcess* coreProcess=new ChildProcess;
 //    coreProcess->set_main_thread(new ChildThread);
 
-#if !defined(OS_MACOSX)
     ResourceBundle::InitSharedInstance(L"en-US");// FIXME: lookup locale
     // We only load the theme dll in the browser process.
     ResourceBundle::GetSharedInstance().LoadThemeResources();
-#endif  // !defined(OS_MACOSX)
     net::CookieMonster::EnableFileScheme();
     ProfileManager* profile_manager = browser_process->profile_manager();
     mProf = profile_manager->GetDefaultProfile(homedirpath);
