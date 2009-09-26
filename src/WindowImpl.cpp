@@ -16,6 +16,13 @@
 #include "chrome/browser/renderer_host/render_widget_host_view.h"
 #include "chrome/browser/renderer_host/render_view_host_factory.h"
 #include "chrome/browser/browser_url_handler.h"
+
+#ifndef _WIN32
+#include <sys/time.h>
+#include <time.h>
+#endif
+
+
 namespace Berkelium {
 //WindowImpl temp;
 void WindowImpl::init(SiteInstance*site) {
@@ -31,6 +38,8 @@ WindowImpl::WindowImpl(const Context*otherContext):Window(otherContext) {
     init(mContext->getImpl()->getSiteInstance());
     mLastNavEntry = NULL;
     mNavEntry = NULL;
+    mWindowX=mWindowY=0;
+    mModifiers=0;
 }
 WindowImpl::~WindowImpl() {
     RenderViewHost* render_view_host = mRenderViewHost;
@@ -362,6 +371,95 @@ void WindowImpl::HandleMouseLeave() {
 }
 void WindowImpl::UpdatePreferredWidth(int pref_width) {
 }
+template<class T>
+void zeroWebEvent(T &event, int modifiers, WebKit::WebInputEvent::Type t) {
+    memset(&event,0,sizeof(T));
+    event.type=t;
+    event.size=sizeof(T);
+    event.modifiers=modifiers;
+#ifdef _WIN32
+    event.timeSTampSeconds=GetTickCount()/1000.0;
+#else
+    timeval tv;
+    gettimeofday(&tv,NULL);
+    event.timeStampSeconds=((double)tv.tv_usec)/1000000.0;
+    event.timeStampSeconds+=tv.tv_sec;
+#endif
+}
+
+void WindowImpl::mouseMoved(int xPos, int yPos) {
+    WebKit::WebMouseEvent event;
+    zeroWebEvent(event,mModifiers,WebKit::WebInputEvent::MouseMove);
+	event.x = xPos;
+	event.y = yPos;
+	event.globalX = xPos+mWindowX;
+	event.globalY = yPos+mWindowY;
+    mMouseX=xPos;
+    mMouseY=yPos;
+	event.button = WebKit::WebMouseEvent::ButtonNone;
+    view()->GetRenderWidgetHost()->ForwardMouseEvent(event);
+}
+
+void WindowImpl::mouseWheel(int scrollX, int scrollY) {
+	WebKit::WebMouseWheelEvent event;
+	zeroWebEvent(event, mModifiers, WebKit::WebInputEvent::MouseWheel);
+	event.x = mMouseX;
+	event.y = mMouseY;
+	event.windowX = mMouseX; // PRHFIXME: Window vs Global position?
+	event.windowY = mMouseY;
+	event.globalX = mWindowX+mMouseX;
+	event.globalY = mWindowY+mMouseY;
+	event.button = WebKit::WebMouseEvent::ButtonNone;
+	event.deltaX = scrollX; // PRHFIXME: want x and y scroll.
+	event.deltaY = scrollY;
+	event.wheelTicksX = scrollX; // PRHFIXME: want x and y scroll.
+	event.wheelTicksY = scrollY;
+	event.scrollByPage = false;
+
+    view()->GetRenderWidgetHost()->ForwardMouseEvent(event);
+}
+
+void WindowImpl::mouseButton(uint32 mouseButton, bool down) {
+    uint32 buttonChangeMask=0;
+    switch(mouseButton) {
+      case 0:
+        buttonChangeMask = WebKit::WebInputEvent::LeftButtonDown;
+        break;
+      case 1:
+        buttonChangeMask = WebKit::WebInputEvent::MiddleButtonDown;
+        break;
+      case 2:
+        buttonChangeMask = WebKit::WebInputEvent::RightButtonDown;
+        break;
+    }
+    if (down) {
+        mModifiers|=buttonChangeMask;
+    }else {
+        mModifiers&=(~buttonChangeMask);
+    }
+    WebKit::WebMouseEvent event;
+    zeroWebEvent(event,mModifiers,down?WebKit::WebInputEvent::MouseDown:WebKit::WebInputEvent::MouseUp);
+    switch(mouseButton) {
+      case 0:
+        event.button = WebKit::WebMouseEvent::ButtonLeft;
+        break;
+      case 1:
+        event.button = WebKit::WebMouseEvent::ButtonMiddle;
+        break;
+      case 2:
+        event.button = WebKit::WebMouseEvent::ButtonRight;
+        break;
+    }
+    if (down){
+        event.clickCount=1;
+    }
+	event.x = mMouseX;
+	event.y = mMouseY;
+	event.globalX = mMouseX+mWindowX;
+	event.globalY = mMouseY+mWindowY;
+    view()->GetRenderWidgetHost()->ForwardMouseEvent(event);
+}
+
 
 
 }

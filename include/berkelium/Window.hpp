@@ -29,7 +29,13 @@ public:
     virtual void resize(int width, int height)=0;
     virtual bool navigateTo(const std::string &url)=0;
     virtual WindowImpl*getImpl()=0;
+    
+    virtual void mouseMoved(int xPos, int yPos)=0;
+    virtual void mouseButton(uint32 buttonID, bool down)=0;
+    virtual void mouseWheel(int xScroll, int yScroll)=0;
 
+//    virtual void textEvent(std::wstring evt)=0;
+//    virtual void keyEvent(bool pressed, int mods, int vk_code, int scancode)=0;
 protected:
     Context *mContext;
     WindowDelegate *mDelegate;

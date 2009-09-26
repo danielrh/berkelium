@@ -25,7 +25,7 @@
 #include "chrome/common/pref_names.h"
 #include "chrome/common/logging_chrome.h"
 #include "base/logging.h"
-
+#include <signal.h>
 #include <sys/stat.h>
 
 //icu_util::Initialize()
