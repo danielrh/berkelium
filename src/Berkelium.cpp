@@ -86,6 +86,10 @@ extern int UtilityMain(const MainFunctionParams&);
 extern int ProfileImportMain(const MainFunctionParams&);
 extern int ZygoteMain(const MainFunctionParams&);
 
+bool IsCrashReporterEnabled() {
+    return false;
+}
+
 namespace Berkelium {
 namespace {
 void CommonSubprocessInit() {
@@ -269,8 +273,9 @@ void forkedProcessHook(int argc, char **argv) {
   // of control because different platforms needed different styles of
   // initialization.  Try again once we understand the process
   // architecture needed and where it should live.
-  if (single_process)
+/*  if (single_process)
     InitWebCoreSystemInterface();
+*/
 #endif
 
   bool icu_result = icu_util::Initialize();
