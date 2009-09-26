@@ -13,6 +13,10 @@ else
 DEBUGFLAGS=-DNDEBUG
 endif
 
+ifeq ($(shell uname),Darwin)
+CHROMIUMBUILDER=xcode
+endif
+
 ifeq ($(CHROMIUMBUILDER),xcode)
 PLAT=mac
 PLATCFLAGS=-pthread
@@ -97,6 +101,12 @@ HEADERS=$(wildcard include/berkelium/*.hpp) $(wildcard src/*.hpp)
 
 TARGET=$(EXEDIR)/libberkelium.$(DLLEXT)
 
+ifeq ($(PLAT),mac)
+EXEDEPS=$(TARGET) $(EXEDIR)/plugin_carbon_interpose.dylib
+else
+EXEDEPS=$(TARGET)
+endif
+
 #all: mymain
 
 all: $(TARGET) berkelium ppmrender
@@ -110,12 +120,20 @@ $(OBJDIR)/%.o: src/%.cpp
 	@mkdir -p $(OBJDIR)||true
 	g++ $(CFLAGS) -DBERKELIUM_BUILD -c $< -o $@
 
+$(EXEDIR)/plugin_carbon_interpose.dylib: $(OBJDIR)/plugin_carbon_interpose.o
+	@mkdir -p $(EXEDIR)||true
+	g++ $< -dynamic -dylib -dynamiclib -L$(EXEDIR) -framework Carbon -lberkelium -o $@
+
+$(OBJDIR)/plugin_carbon_interpose.o: $(CHROMIUMDIR)/src/chrome/browser/plugin_carbon_interpose_mac.cc
+	@mkdir -p $(OBJDIR)||true
+	g++ $(CFLAGS) -c $< -o $@
+
 clean:
 	rm -f $(OBJS) $(TARGET)
 
-berkelium: $(TARGET) subprocess.cpp
+berkelium: $(EXEDEPS) subprocess.cpp
 	g++ -g $(CFLAGS) -L$(EXEDIR) -lberkelium subprocess.cpp -o berkelium
 
-ppmrender: $(OBJS) ppmmain.cpp $(TARGET)
+ppmrender: $(EXEDEPS) ppmmain.cpp
 	g++ -g $(CFLAGS) -L$(EXEDIR) -lberkelium ppmmain.cpp -o ppmrender
 

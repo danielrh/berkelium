@@ -2,6 +2,7 @@
 #include "berkelium/Singleton.hpp"
 #include "chrome/browser/profile.h"
 #include "chrome/common/notification_service.h"
+#include "base/scoped_nsautorelease_pool.h"
 
 class BrowserRenderProcessHost;
 class ProcessSingleton;
@@ -19,6 +20,7 @@ class Root:public AutoSingleton<Root> {
     ProcessSingleton *mProcessSingleton;
     ChromeThread *mUIThread;
     MemoryRenderViewHostFactory *mRenderViewHostFactory;
+    base::ScopedNSAutoreleasePool autorelease_pool;
 public:
     Root();
     ~Root();

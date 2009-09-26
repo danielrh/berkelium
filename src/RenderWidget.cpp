@@ -47,7 +47,6 @@ void RenderWidget::SetSize(const gfx::Size& size){
   // Retrieves the native view used to contain plugins and identify the
   // renderer in IPC messages.
 gfx::NativeView RenderWidget::GetNativeView(){
-    NOTIMPLEMENTED();
     return gfx::NativeView();
 }
 
