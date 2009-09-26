@@ -16,7 +16,7 @@
 #include "chrome/browser/renderer_host/render_widget_host_view.h"
 #include "chrome/browser/renderer_host/render_view_host_factory.h"
 #include "chrome/browser/browser_url_handler.h"
-
+#include "chrome/common/native_web_keyboard_event.h"
 #ifndef _WIN32
 #include <sys/time.h>
 #include <time.h>
@@ -419,8 +419,8 @@ void WindowImpl::mouseWheel(int scrollX, int scrollY) {
     view()->GetRenderWidgetHost()->ForwardMouseEvent(event);
 }
 
-void WindowImpl::mouseButton(uint32 mouseButton, bool down) {
-    uint32 buttonChangeMask=0;
+void WindowImpl::mouseButton(unsigned int mouseButton, bool down) {
+    unsigned int buttonChangeMask=0;
     switch(mouseButton) {
       case 0:
         buttonChangeMask = WebKit::WebInputEvent::LeftButtonDown;
@@ -460,6 +460,68 @@ void WindowImpl::mouseButton(uint32 mouseButton, bool down) {
     view()->GetRenderWidgetHost()->ForwardMouseEvent(event);
 }
 
+void WindowImpl::keyEvent(bool pressed, int modifiers, int vk_code, int scancode){
+	NativeWebKeyboardEvent event;
+	zeroWebEvent(event, mModifiers, pressed?WebKit::WebInputEvent::RawKeyDown:WebKit::WebInputEvent::KeyUp);
+	event.windowsKeyCode = vk_code;
+	event.nativeKeyCode = scancode;
+	event.text[0]=0;
+	event.unmodifiedText[0]=0;
+	event.isSystemKey = (modifiers & Berkelium::SYSTEM_KEY)?true:false;
 
+	event.modifiers=0;
+	if (modifiers & Berkelium::ALT_MOD)
+		event.modifiers |= WebKit::WebInputEvent::AltKey;
+	if (modifiers & Berkelium::CONTROL_MOD)
+		event.modifiers |= WebKit::WebInputEvent::ControlKey;
+	if (modifiers & Berkelium::SHIFT_MOD)
+		event.modifiers |= WebKit::WebInputEvent::ShiftKey;
+	if (modifiers & Berkelium::META_MOD)
+		event.modifiers |= WebKit::WebInputEvent::MetaKey;
+	if (modifiers & Berkelium::KEYPAD_KEY)
+		event.modifiers |= WebKit::WebInputEvent::IsKeyPad;
+	if (modifiers & Berkelium::AUTOREPEAT_KEY)
+		event.modifiers |= WebKit::WebInputEvent::IsAutoRepeat;
+
+	event.setKeyIdentifierFromWindowsKeyCode();
+
+	view()->GetRenderWidgetHost()->ForwardKeyboardEvent(event);
+
+	// keep track of persistent modifiers.
+    unsigned int test=(WebKit::WebInputEvent::LeftButtonDown|WebKit::WebInputEvent::MiddleButtonDown|WebKit::WebInputEvent::RightButtonDown);
+	mModifiers = ((mModifiers&test) |  (event.modifiers& (Berkelium::SHIFT_MOD|Berkelium::CONTROL_MOD|Berkelium::ALT_MOD|Berkelium::META_MOD)));    
+}
+
+
+void WindowImpl::textEvent(std::wstring text) {
+	// generate one of these events for each lengthCap chunks.
+	// 1 less because we need to null terminate.
+	const size_t lengthCap = WebKit::WebKeyboardEvent::textLengthCap-1;
+	NativeWebKeyboardEvent event;
+	zeroWebEvent(event,mModifiers, WebKit::WebInputEvent::Char);
+	event.isSystemKey = false;
+	event.windowsKeyCode = 0;
+	event.nativeKeyCode = 0;
+	event.keyIdentifier[0]=0;
+	size_t i;
+	while (text.size() > lengthCap) {
+
+	}
+	for (i = 0; i + lengthCap < text.size(); i+=lengthCap) {
+		memcpy(event.text, text.data()+i, lengthCap*sizeof(WebKit::WebUChar));
+		event.text[lengthCap]=0;
+		memcpy(event.unmodifiedText, text.data()+i, lengthCap*sizeof(WebKit::WebUChar));
+		event.unmodifiedText[lengthCap]=0;
+        view()->GetRenderWidgetHost()->ForwardKeyboardEvent(event);
+	}
+	if (i < text.size()) {
+		assert(text.size()-i <= lengthCap);
+		memcpy(event.unmodifiedText, text.data()+i, (text.size()-i)*sizeof(WebKit::WebUChar));
+		memcpy(event.text, text.data()+i, (text.size()-i)*sizeof(WebKit::WebUChar));
+		event.text[text.size()-i]=0;
+		event.unmodifiedText[text.size()-i]=0;
+        view()->GetRenderWidgetHost()->ForwardKeyboardEvent(event);
+	}
+}
 
 }
