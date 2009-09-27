@@ -35,6 +35,7 @@
 #include "berkelium/WindowDelegate.hpp"
 #include "berkelium/Context.hpp"
 
+#include <sstream>
 #include <iostream>
 
 using namespace Berkelium;
@@ -69,8 +70,34 @@ public:
         std::cout << "*** onLoadError "<<mURL<<": "<<error<<std::endl;
     }
 
-    virtual void onPaint(Window *win) {
+    virtual void onPaint(Window *wini, const unsigned char *bitmap_in, const Rect &bitmap_rect) {
         std::cout << "*** onPaint "<<mURL<<std::endl;
+        static int call_count = 0;
+        FILE *outfile;
+        {
+            std::ostringstream os;
+            os << "/tmp/chromium_render_" << time(NULL) << "_" << (call_count++) << ".ppm";
+            std::string str (os.str());
+            outfile = fopen(str.c_str(), "wb");
+        }
+        const int width = bitmap_rect.width();
+        const int height = bitmap_rect.height();
+
+        fprintf(outfile, "P6 %d %d 255\n", width, height);
+        for (int y = 0; y < height; ++y) {
+            for (int x = 0; x < width; ++x) {
+                unsigned char r,g,b,a;
+		b = *(bitmap_in++);
+		g = *(bitmap_in++);
+		r = *(bitmap_in++);
+		a = *(bitmap_in++);
+                fputc(r, outfile);  // Red
+                fputc(g, outfile);  // Green
+                fputc(b, outfile);  // Blue
+                //(pixel >> 24) & 0xff;  // Alpha
+            }
+        }
+        fclose(outfile);
     }
 
     virtual void onBeforeUnload(Window *win, bool *proceed) {

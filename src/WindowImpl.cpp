@@ -205,6 +205,12 @@ ContextImpl *WindowImpl::getContextImpl() const {
     return static_cast<ContextImpl*>(getContext());
 }
 
+void WindowImpl::onPaint(const unsigned char *sourceBuffer, const Rect &rect) {
+    if (mDelegate) {
+        mDelegate->onPaint(this, sourceBuffer, rect);
+    }
+}
+
 
 /******* RenderViewHostManager::Delegate *******/
 

@@ -58,6 +58,8 @@ private:
                                       const gfx::Rect& bitmap_rect,
                                       const gfx::Size& view_size);
 
+    WindowImpl *mWindow;
+
 };
 
 class MemoryRenderViewHostFactory : public RenderViewHostFactory {

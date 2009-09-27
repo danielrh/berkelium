@@ -31,8 +31,8 @@
  */
 
 #include "berkelium/Platform.hpp"
+#include "WindowImpl.hpp"
 #include "MemoryRenderViewHost.hpp"
-
 #include <stdio.h>
 
 #include "chrome/browser/renderer_host/render_process_host.h"
@@ -47,6 +47,8 @@ MemoryRenderViewHost::MemoryRenderViewHost(
         int routing_id,
         base::WaitableEvent* modal_dialog_event)
     : RenderViewHost(instance, delegate, routing_id, modal_dialog_event) {
+
+    mWindow = static_cast<WindowImpl*>(delegate);
 }
 
 MemoryRenderViewHost::~MemoryRenderViewHost() {
@@ -125,30 +127,16 @@ void MemoryRenderViewHost::Memory_PaintBackingStoreRect(
     const gfx::Rect& bitmap_rect,
     const gfx::Size& view_size)
 {
-    static int call_count = 0;
-    FILE *outfile;
-    {
-        std::ostringstream os;
-        os << "/tmp/chromium_render_" << time(NULL) << "_" << (call_count++) << ".ppm";
-        std::string str (os.str());
-        outfile = fopen(str.c_str(), "wb");
-    }
-    const int width = bitmap_rect.width();
-    const int height = bitmap_rect.height();
-    const uint32_t* bitmap_in =
-        static_cast<const uint32_t*>(bitmap->memory());
+    Rect updateRect;
+    updateRect.mTop = bitmap_rect.x();
+    updateRect.mLeft = bitmap_rect.y();
+    updateRect.mWidth = bitmap_rect.width();
+    updateRect.mHeight = bitmap_rect.height();
 
-    fprintf(outfile, "P6 %d %d 255\n", width, height);
-    for (int y = 0; y < height; ++y) {
-        for (int x = 0; x < width; ++x) {
-            const uint32_t pixel = *(bitmap_in++);
-            fputc((pixel >> 16) & 0xff, outfile);  // Red
-            fputc((pixel >> 8) & 0xff, outfile);  // Green
-            fputc(pixel & 0xff, outfile);  // Blue
-            //(pixel >> 24) & 0xff;  // Alpha
-        }
-    }
-    fclose(outfile);
+    //const uint32_t* bitmap_in =
+    //    static_cast<const uint32_t*>(bitmap->memory());
+
+    mWindow->onPaint(static_cast<const unsigned char *>(bitmap->memory()), updateRect);
 }
 
 

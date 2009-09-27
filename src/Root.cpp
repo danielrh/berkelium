@@ -180,7 +180,7 @@ Root::Root (){
 }
 
 void Root::runUIMessageLoop() {
-    MessageLoopForUI::current()->Run();
+    MessageLoopForUI::current()->Run(NULL);
 }
 
 Root::~Root(){

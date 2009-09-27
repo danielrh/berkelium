@@ -55,7 +55,7 @@ public:
     virtual void onLoadError(Window *win, const std::string &error)=0;
 
 
-    virtual void onPaint(Window *win)=0;
+    virtual void onPaint(Window *win, const unsigned char *sourceBuffer, const Rect &rect)=0;
 
     virtual void onBeforeUnload(Window *win, bool *proceed)=0;
     virtual void onCancelUnload(Window *win)=0;

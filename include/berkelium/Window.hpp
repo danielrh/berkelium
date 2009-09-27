@@ -40,6 +40,20 @@ namespace Berkelium {
 class WindowImpl;
 class WindowDelegate;
 
+struct Rect {
+    int mTop;
+    int mLeft;
+    int mWidth;
+    int mHeight;
+
+    int top() const { return mTop; }
+    int left() const { return mLeft; }
+    int width() const { return mWidth; }
+    int height() const { return mHeight; }
+    int right() const { return mLeft + mWidth; }
+    int bottom() const { return mTop + mHeight; }
+};
+
 enum KeyModifier {
 	SHIFT_MOD	= 1 << 0,
 	CONTROL_MOD	= 1 << 1,
