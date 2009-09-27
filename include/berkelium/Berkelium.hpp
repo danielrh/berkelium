@@ -47,7 +47,7 @@ void BERKELIUM_EXPORT forkedProcessHook(int argc, char **argv);
 void BERKELIUM_EXPORT init();
 void BERKELIUM_EXPORT destroy();
 
-void BERKELIUM_EXPORT run();
+void BERKELIUM_EXPORT update();
 
 int BERKELIUM_EXPORT renderToBuffer(char *buffer, int width, int height);
 

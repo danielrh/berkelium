@@ -179,8 +179,18 @@ Root::Root (){
     PathService::Override(base::FILE_EXE, FilePath("./berkelium"));
 }
 
-void Root::runUIMessageLoop() {
-    MessageLoopForUI::current()->Run(NULL);
+/*
+void Root::runUntilStopped() {
+    MessageLoopForUI::current()->Run();
+}
+
+void Root::stopRunning() {
+    MessageLoopForUI::current()->Quit();
+}
+*/
+
+void Root::update() {
+    MessageLoopForUI::current()->RunAllPending();
 }
 
 Root::~Root(){

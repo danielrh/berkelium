@@ -145,7 +145,15 @@ int main () {
     win5->navigateTo("http://sirikata.com");
 */
     char buffer[WIDTH][HEIGHT][3];
-    Berkelium::run();
+    while(true) {
+        Berkelium::update();
+        {
+            struct timeval tv;
+            tv.tv_sec = 0;
+            tv.tv_usec = 10000;
+            select(0,NULL,NULL,NULL, &tv);
+        }
+    }
     int retval=Berkelium::renderToBuffer(&buffer[0][0][0],WIDTH,HEIGHT);
     delete win;
     //delete win2;

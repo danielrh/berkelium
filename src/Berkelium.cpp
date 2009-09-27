@@ -408,8 +408,8 @@ void init() {
 void destroy() {
     Root::destroy();
 }
-void run() {
-    Root::getSingleton().runUIMessageLoop();
+void update() {
+    Root::getSingleton().update();
 }
 
 int renderToBuffer(char * buffer, int width, int height) {

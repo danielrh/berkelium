@@ -57,7 +57,9 @@ public:
     Root();
     ~Root();
 
-    void runUIMessageLoop();
+//    void runUntilStopped();
+//    void stopRunning();
+    void update();
 
     ProcessSingleton *getProcessSingleton(){
         return mProcessSingleton;
