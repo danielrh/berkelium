@@ -1,4 +1,8 @@
 chromium
-libberkelium.so
+berkelium
+Debug
+Release
 ppmrender
-src/*.o
+*.pak
+*.dSYM
+chrome_debug.log
