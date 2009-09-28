@@ -128,8 +128,8 @@ void MemoryRenderViewHost::Memory_PaintBackingStoreRect(
     const gfx::Size& view_size)
 {
     Rect updateRect;
-    updateRect.mTop = bitmap_rect.x();
-    updateRect.mLeft = bitmap_rect.y();
+    updateRect.mTop = bitmap_rect.y();
+    updateRect.mLeft = bitmap_rect.x();
     updateRect.mWidth = bitmap_rect.width();
     updateRect.mHeight = bitmap_rect.height();
 

@@ -35,6 +35,8 @@
 #include "berkelium/WindowDelegate.hpp"
 #include "berkelium/Context.hpp"
 
+#include <sys/types.h>
+#include <sys/select.h>
 #include <sstream>
 #include <iostream>
 
