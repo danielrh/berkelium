@@ -83,7 +83,20 @@ public:
     }
 
     virtual void resize(int width, int height)=0;
+    virtual void executeJavascript(const std::wstring &javascript)=0;
     virtual bool navigateTo(const std::string &url)=0;
+    virtual void refresh()=0;
+
+    virtual void focus()=0;
+    virtual void unfocus()=0;
+    virtual void cut()=0;
+    virtual void copy()=0;
+    virtual void paste()=0;
+    virtual void undo()=0;
+    virtual void redo()=0;
+    virtual void del()=0;
+    virtual void selectAll()=0;
+
     virtual WindowImpl*getImpl()=0;
     
     virtual void mouseMoved(int xPos, int yPos)=0;

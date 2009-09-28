@@ -67,11 +67,12 @@ void WindowImpl::init(SiteInstance*site) {
 }
 
 WindowImpl::WindowImpl(const Context*otherContext):Window(otherContext) {
-    init(mContext->getImpl()->getSiteInstance());
+    mCurrentURL = GURL("about:blank");
     mLastNavEntry = NULL;
     mNavEntry = NULL;
     mWindowX=mWindowY=0;
     mModifiers=0;
+    init(mContext->getImpl()->getSiteInstance());
 }
 WindowImpl::~WindowImpl() {
     RenderViewHost* render_view_host = mRenderViewHost;
@@ -120,6 +121,38 @@ void WindowImpl::resize(int width, int height) {
     SetContainerBounds(gfx::Rect(0, 0, width, height));
 }
 
+void WindowImpl::focus() {
+    if (host()) host()->Focus();
+}
+void WindowImpl::unfocus() {
+    if (host()) host()->Blur();
+}
+void WindowImpl::cut() {
+    if (host()) host()->Cut();
+}
+void WindowImpl::copy() {
+    if (host()) host()->Copy();
+}
+void WindowImpl::paste() {
+    if (host()) host()->Paste();
+}
+void WindowImpl::undo() {
+    if (host()) host()->Undo();
+}
+void WindowImpl::redo() {
+    if (host()) host()->Redo();
+}
+void WindowImpl::del() {
+    if (host()) host()->Delete();
+}
+void WindowImpl::selectAll() {
+    if (host()) host()->SelectAll();
+}
+
+void WindowImpl::refresh() {
+    doNavigateTo(mCurrentURL, GURL(), true);
+}
+
 void WindowImpl::SetContainerBounds (const gfx::Rect &rc) {
     mRect = rc;
     RenderWidgetHostView* myview = view();
@@ -132,8 +165,15 @@ void WindowImpl::SetContainerBounds (const gfx::Rect &rc) {
     }
 }
 
+void WindowImpl::executeJavascript(const std::wstring &javascript) {
+    if (host()) {
+        host()->ExecuteJavascriptInWebFrame(std::wstring(), javascript);
+    }
+}
+
 bool WindowImpl::navigateTo(const std::string &url) {
-    return doNavigateTo(GURL(url), GURL(), false);
+    this->mCurrentURL = GURL(url);
+    return doNavigateTo(this->mCurrentURL, GURL(), false);
 }
 bool WindowImpl::doNavigateTo(
         const GURL &newURL,
@@ -312,6 +352,7 @@ void WindowImpl::DidStartProvisionalLoadForFrame(
         return;
     }
     if (mDelegate) {
+        this->mCurrentURL = url;
         mDelegate->onStartLoading(this, url.spec());
         mDelegate->onAddressBarChanged(this, url.spec());
     }

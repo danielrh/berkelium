@@ -72,12 +72,24 @@ public:
     WindowImpl(const Context*otherContext);
     virtual ~WindowImpl();
 
+    void executeJavascript(const std::wstring &javascript);
     bool navigateTo(const std::string &url);
 
     Profile *profile() const;
     RenderProcessHost *process() const;
     RenderWidgetHostView *view() const;
     RenderViewHost *host() const;
+
+    virtual void refresh();
+    virtual void focus();
+    virtual void unfocus();
+    virtual void cut();
+    virtual void copy();
+    virtual void paste();
+    virtual void undo();
+    virtual void redo();
+    virtual void del();
+    virtual void selectAll();
 
     bool doNavigateTo(
         const GURL &newURL,
@@ -181,6 +193,8 @@ protected: /******* RenderViewHostDelegate::View *******/
     virtual void UpdatePreferredWidth(int pref_width);
 
 private:
+
+    GURL mCurrentURL;
 
     gfx::Rect mRect;
     NavigationEntry *mLastNavEntry;
