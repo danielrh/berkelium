@@ -53,12 +53,17 @@ public:
     virtual void OnMessageReceived(const IPC::Message& msg);
 
 private:
+    void Memory_OnMsgScrollRect(const ViewHostMsg_ScrollRect_Params&params);
     void Memory_OnMsgPaintRect(const ViewHostMsg_PaintRect_Params&params);
-    void Memory_PaintBackingStoreRect(TransportDIB* bitmap,
+    void Memory_ScrollBackingStoreRect(TransportDIB* bitmap,
                                       const gfx::Rect& bitmap_rect,
-                                      const gfx::Size& view_size);
+                                      int dx, int dy,
+                                      const gfx::Rect& clip_rect);
+    void Memory_PaintBackingStoreRect(TransportDIB* bitmap,
+                                      const gfx::Rect& bitmap_rect);
 
     WindowImpl *mWindow;
+    gfx::Size current_size_;
 
 };
 

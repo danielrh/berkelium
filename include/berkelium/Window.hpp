@@ -52,6 +52,21 @@ struct Rect {
     int height() const { return mHeight; }
     int right() const { return mLeft + mWidth; }
     int bottom() const { return mTop + mHeight; }
+
+    Rect intersect(const Rect &rect) {
+        int rx = std::max(left(), rect.left());
+        int ry = std::max(top(), rect.top());
+        int rr = std::min(right(), rect.right());
+        int rb = std::min(bottom(), rect.bottom());
+        if (rx >= rr || ry >= rb)
+            rx = ry = rr = rb = 0;  // non-intersecting
+        Rect ret;
+        ret.mLeft = rx;
+        ret.mTop = ry;
+        ret.mWidth = rr-rx;
+        ret.mHeight = rb-ry;
+        return ret;
+    }
 };
 
 enum KeyModifier {

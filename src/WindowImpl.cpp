@@ -245,9 +245,10 @@ ContextImpl *WindowImpl::getContextImpl() const {
     return static_cast<ContextImpl*>(getContext());
 }
 
-void WindowImpl::onPaint(const unsigned char *sourceBuffer, const Rect &rect) {
+void WindowImpl::onPaint(const unsigned char *sourceBuffer, const Rect &rect,
+                         int dx, int dy, const Rect &scrollRect) {
     if (mDelegate) {
-        mDelegate->onPaint(this, sourceBuffer, rect);
+        mDelegate->onPaint(this, sourceBuffer, rect, dx, dy, scrollRect);
     }
 }
 
@@ -467,6 +468,7 @@ void zeroWebEvent(T &event, int modifiers, WebKit::WebInputEvent::Type t) {
 }
 
 void WindowImpl::mouseMoved(int xPos, int yPos) {
+    if (!view()) return;
     WebKit::WebMouseEvent event;
     zeroWebEvent(event,mModifiers,WebKit::WebInputEvent::MouseMove);
 	event.x = xPos;
@@ -480,6 +482,7 @@ void WindowImpl::mouseMoved(int xPos, int yPos) {
 }
 
 void WindowImpl::mouseWheel(int scrollX, int scrollY) {
+    if (!view()) return;
 	WebKit::WebMouseWheelEvent event;
 	zeroWebEvent(event, mModifiers, WebKit::WebInputEvent::MouseWheel);
 	event.x = mMouseX;
@@ -499,6 +502,7 @@ void WindowImpl::mouseWheel(int scrollX, int scrollY) {
 }
 
 void WindowImpl::mouseButton(unsigned int mouseButton, bool down) {
+    if (!view()) return;
     unsigned int buttonChangeMask=0;
     switch(mouseButton) {
       case 0:
@@ -540,6 +544,7 @@ void WindowImpl::mouseButton(unsigned int mouseButton, bool down) {
 }
 
 void WindowImpl::keyEvent(bool pressed, int modifiers, int vk_code, int scancode){
+	if (!view()) return;
 	NativeWebKeyboardEvent event;
 	zeroWebEvent(event, mModifiers, pressed?WebKit::WebInputEvent::RawKeyDown:WebKit::WebInputEvent::KeyUp);
 	event.windowsKeyCode = vk_code;
@@ -573,6 +578,7 @@ void WindowImpl::keyEvent(bool pressed, int modifiers, int vk_code, int scancode
 
 
 void WindowImpl::textEvent(std::wstring text) {
+	if (!view()) return;
 	// generate one of these events for each lengthCap chunks.
 	// 1 less because we need to null terminate.
 	const size_t lengthCap = WebKit::WebKeyboardEvent::textLengthCap-1;

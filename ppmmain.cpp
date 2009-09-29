@@ -72,7 +72,8 @@ public:
         std::cout << "*** onLoadError "<<mURL<<": "<<error<<std::endl;
     }
 
-    virtual void onPaint(Window *wini, const unsigned char *bitmap_in, const Rect &bitmap_rect) {
+    virtual void onPaint(Window *wini, const unsigned char *bitmap_in, const Rect &bitmap_rect,
+                         int dx, int dy, const Rect &scroll_rect) {
         std::cout << "*** onPaint "<<mURL<<std::endl;
         static int call_count = 0;
         FILE *outfile;

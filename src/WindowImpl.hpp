@@ -106,7 +106,8 @@ public:
     void textEvent(std::wstring evt);
     void keyEvent(bool pressed, int mods, int vk_code, int scancode);
 
-    void onPaint(const unsigned char *sourceBuffer, const Rect &rect);
+    void onPaint(const unsigned char *sourceBuffer, const Rect &rect,
+                 int dx, int dy, const Rect &scrollRect);
 protected:
     ContextImpl *getContextImpl() const;
 

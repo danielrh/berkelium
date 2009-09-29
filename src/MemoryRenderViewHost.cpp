@@ -35,6 +35,7 @@
 #include "MemoryRenderViewHost.hpp"
 #include <stdio.h>
 
+#include "chrome/browser/renderer_host/render_widget_host_view.h"
 #include "chrome/browser/renderer_host/render_process_host.h"
 #include "chrome/common/notification_service.h"
 #include "chrome/common/render_messages.h"
@@ -57,15 +58,21 @@ MemoryRenderViewHost::~MemoryRenderViewHost() {
 void MemoryRenderViewHost::OnMessageReceived(const IPC::Message& msg) {
   bool msg_is_ok = true;
   IPC_BEGIN_MESSAGE_MAP_EX(MemoryRenderViewHost, msg, msg_is_ok)
+    IPC_MESSAGE_HANDLER(ViewHostMsg_ScrollRect, Memory_OnMsgScrollRect)
     IPC_MESSAGE_HANDLER(ViewHostMsg_PaintRect, Memory_OnMsgPaintRect)
     IPC_MESSAGE_UNHANDLED(RenderViewHost::OnMessageReceived(msg))
   IPC_END_MESSAGE_MAP_EX()
 
       ;
+/*
   if (msg.type() == ViewHostMsg_PaintRect::ID) {
       RenderViewHost::OnMessageReceived(msg);
   }
-          
+  if (msg.type() == ViewHostMsg_ScrollRect::ID) {
+      RenderViewHost::OnMessageReceived(msg);
+  }
+*/
+
   if (!msg_is_ok) {
     // The message had a handler, but its de-serialization failed.
     // Kill the renderer.
@@ -73,12 +80,50 @@ void MemoryRenderViewHost::OnMessageReceived(const IPC::Message& msg) {
   }
 }
 
+void MemoryRenderViewHost::Memory_OnMsgScrollRect(
+    const ViewHostMsg_ScrollRect_Params& params) {
+
+  DCHECK(!params.view_size.IsEmpty());
+
+  const size_t size = params.bitmap_rect.height() *
+                      params.bitmap_rect.width() * 4;
+  TransportDIB* dib = process()->GetTransportDIB(params.bitmap);
+  if (dib) {
+    if (dib->size() < size) {
+      LOG(WARNING) << "Transport DIB too small for given rectangle";
+      process()->ReceivedBadMessage(ViewHostMsg_PaintRect__ID);
+    } else {
+      // Scroll the backing store.
+      Memory_ScrollBackingStoreRect(
+          dib, params.bitmap_rect,
+          params.dx, params.dy,
+          params.clip_rect);
+    }
+  }
+
+  // ACK early so we can prefetch the next ScrollRect if there is a next one.
+  // This must be done AFTER we're done painting with the bitmap supplied by the
+  // renderer. This ACK is a signal to the renderer that the backing store can
+  // be re-used, so the bitmap may be invalid after this call.
+  Send(new ViewMsg_ScrollRect_ACK(routing_id()));
+
+  // Paint the view. Watch out: it might be destroyed already.
+  if (view()) {
+    //PRIV//view_being_painted_ = true;
+    view()->MovePluginWindows(params.plugin_window_moves);
+    view()->DidScrollRect(params.clip_rect, params.dx, params.dy);
+    //PRIV//view_being_painted_ = false;
+  }
+
+}
+
 void MemoryRenderViewHost::Memory_OnMsgPaintRect(
     const ViewHostMsg_PaintRect_Params&params)
 {
-/*
-    // Update our knowledge of the RenderWidget's size.
-    current_size_ = params.view_size;
+  current_size_ = params.view_size;
+
+    DCHECK(!params.bitmap_rect.IsEmpty());
+    DCHECK(!params.view_size.IsEmpty());
 
     bool is_resize_ack =
         ViewHostMsg_PaintRect_Flags::is_resize_ack(params.flags);
@@ -86,46 +131,63 @@ void MemoryRenderViewHost::Memory_OnMsgPaintRect(
     // resize_ack_pending_ needs to be cleared before we call DidPaintRect, since
     // that will end up reaching GetBackingStore.
     if (is_resize_ack) {
-        DCHECK(resize_ack_pending_);
-        resize_ack_pending_ = false;
-        in_flight_size_.SetSize(0, 0);
+        //PRIV//DCHECK(resize_ack_pending_);
+        //PRIV//resize_ack_pending_ = false;
+        //PRIV//in_flight_size_.SetSize(0, 0);
     }
 
     bool is_repaint_ack =
         ViewHostMsg_PaintRect_Flags::is_repaint_ack(params.flags);
-    if (is_repaint_ack) {
-        repaint_ack_pending_ = false;
-        TimeDelta delta = TimeTicks::Now() - repaint_start_time_;
-        UMA_HISTOGRAM_TIMES("MPArch.RWH_RepaintDelta", delta);
-    }
-*/
-    DCHECK(!params.bitmap_rect.IsEmpty());
-    DCHECK(!params.view_size.IsEmpty());
 
-    const size_t size = params.bitmap_rect.height() *
-        params.bitmap_rect.width() * 4;
-    TransportDIB* dib = process()->GetTransportDIB(params.bitmap);
-    if (dib) {
-        if (dib->size() < size) {
-            DLOG(WARNING) << "Transport DIB too small for given rectangle";
-            process()->ReceivedBadMessage(ViewHostMsg_PaintRect__ID);
-        } else {
-            // Paint the backing store. This will update it with the renderer-supplied
-            // bits. The view will read out of the backing store later to actually
-            // draw to the screen.
-            Memory_PaintBackingStoreRect(dib, params.bitmap_rect, params.view_size);
-        }
-    }
 
-/*
-    Send(new ViewMsg_PaintRect_ACK(routing_id_));
-*/
+  DCHECK(!params.bitmap_rect.IsEmpty());
+  DCHECK(!params.view_size.IsEmpty());
+
+  const size_t size = params.bitmap_rect.height() *
+                      params.bitmap_rect.width() * 4;
+  TransportDIB* dib = process()->GetTransportDIB(params.bitmap);
+  if (dib) {
+    if (dib->size() < size) {
+      DLOG(WARNING) << "Transport DIB too small for given rectangle";
+      process()->ReceivedBadMessage(ViewHostMsg_PaintRect__ID);
+    } else {
+      // Paint the backing store. This will update it with the renderer-supplied
+      // bits. The view will read out of the backing store later to actually
+      // draw to the screen.
+      Memory_PaintBackingStoreRect(dib, params.bitmap_rect);
+    }
+  }
+
+  // ACK early so we can prefetch the next PaintRect if there is a next one.
+  // This must be done AFTER we're done painting with the bitmap supplied by the
+  // renderer. This ACK is a signal to the renderer that the backing store can
+  // be re-used, so the bitmap may be invalid after this call.
+  Send(new ViewMsg_PaintRect_ACK(routing_id()));
+
+  // Now paint the view. Watch out: it might be destroyed already.
+  if (view()) {
+    view()->MovePluginWindows(params.plugin_window_moves);
+    //PRIV//view_being_painted_ = true;
+    view()->DidPaintRect(params.bitmap_rect);
+    //PRIV//view_being_painted_ = false;
+  }
+
+  // If we got a resize ack, then perhaps we have another resize to send?
+  if (is_resize_ack && view()) {
+    gfx::Rect view_bounds = view()->GetViewBounds();
+    if (current_size_.width() != view_bounds.width() ||
+        current_size_.height() != view_bounds.height()) {
+      WasResized();
+    }
+  }
+
 }
 
-void MemoryRenderViewHost::Memory_PaintBackingStoreRect(
+void MemoryRenderViewHost::Memory_ScrollBackingStoreRect(
     TransportDIB* bitmap,
     const gfx::Rect& bitmap_rect,
-    const gfx::Size& view_size)
+    int dx, int dy,
+    const gfx::Rect& clip_rect)
 {
     Rect updateRect;
     updateRect.mTop = bitmap_rect.y();
@@ -133,10 +195,26 @@ void MemoryRenderViewHost::Memory_PaintBackingStoreRect(
     updateRect.mWidth = bitmap_rect.width();
     updateRect.mHeight = bitmap_rect.height();
 
-    //const uint32_t* bitmap_in =
-    //    static_cast<const uint32_t*>(bitmap->memory());
+    Rect clipRect;
+    clipRect.mTop = clip_rect.y();
+    clipRect.mLeft = clip_rect.x();
+    clipRect.mWidth = clip_rect.width();
+    clipRect.mHeight = clip_rect.height();
 
-    mWindow->onPaint(static_cast<const unsigned char *>(bitmap->memory()), updateRect);
+    mWindow->onPaint(
+        static_cast<const unsigned char *>(bitmap->memory()),
+        updateRect,
+        dx,
+        dy,
+        clipRect);
+
+}
+
+void MemoryRenderViewHost::Memory_PaintBackingStoreRect(
+    TransportDIB* bitmap,
+    const gfx::Rect& bitmap_rect)
+{
+    Memory_ScrollBackingStoreRect(bitmap, bitmap_rect, 0, 0, gfx::Rect());
 }
 
 
