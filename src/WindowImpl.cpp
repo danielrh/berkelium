@@ -56,8 +56,12 @@ void WindowImpl::init(SiteInstance*site, int routing_id) {
     mRenderViewHost = RenderViewHostFactory::Create(
         site,
         this,
+<<<<<<< HEAD:src/WindowImpl.cpp
         routing_id,
         NULL);
+=======
+        MSG_ROUTING_NONE);
+>>>>>>> closer to supporting the 27764 interface:src/WindowImpl.cpp
     CreateRenderViewForRenderManager(host());
 }
 
