@@ -45,9 +45,8 @@ namespace Berkelium {
 MemoryRenderViewHost::MemoryRenderViewHost(
         SiteInstance* instance,
         RenderViewHostDelegate* delegate,
-        int routing_id,
-        base::WaitableEvent* modal_dialog_event)
-    : RenderViewHost(instance, delegate, routing_id, modal_dialog_event) {
+        int routing_id)
+    : RenderViewHost(instance, delegate, routing_id) {
 
     mWindow = static_cast<WindowImpl*>(delegate);
 }
@@ -229,11 +228,10 @@ MemoryRenderViewHostFactory::~MemoryRenderViewHostFactory() {
 RenderViewHost* MemoryRenderViewHostFactory::CreateRenderViewHost(
     SiteInstance* instance,
     RenderViewHostDelegate* delegate,
-    int routing_id,
-    base::WaitableEvent* modal_dialog_event)
+    int routing_id)
 {
     return new MemoryRenderViewHost(instance, delegate,
-                                    routing_id, modal_dialog_event);
+                                    routing_id);
 }
 
 }

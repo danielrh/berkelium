@@ -61,8 +61,7 @@ void WindowImpl::init(SiteInstance*site) {
     mRenderViewHost = RenderViewHostFactory::Create(
         site,
         this,
-        MSG_ROUTING_NONE,
-        NULL);
+        MSG_ROUTING_NONE);
     CreateRenderViewForRenderManager(host());
 }
 
