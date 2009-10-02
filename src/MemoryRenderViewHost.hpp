@@ -30,8 +30,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _BERKELIUM_RENDERWIDGET_HPP_
-#define _BERKELIUM_RENDERWIDGET_HPP_
+#ifndef _BERKELIUM_MEMORYRENDERWIDGET_HPP_
+#define _BERKELIUM_MEMORYRENDERWIDGET_HPP_
 
 #include "chrome/browser/renderer_host/render_view_host.h"
 #include "chrome/browser/renderer_host/render_view_host_factory.h"
@@ -51,7 +51,10 @@ public:
     ~MemoryRenderViewHost();
 
     virtual void OnMessageReceived(const IPC::Message& msg);
-
+    void Memory_WasResized();
+protected:
+    bool mResizeAckPending;
+    gfx::Size mInFlightSize;
 private:
     void Memory_OnMsgScrollRect(const ViewHostMsg_ScrollRect_Params&params);
     void Memory_OnMsgPaintRect(const ViewHostMsg_PaintRect_Params&params);

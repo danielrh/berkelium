@@ -161,7 +161,7 @@ void WindowImpl::SetContainerBounds (const gfx::Rect &rc) {
     }
     RenderViewHost* myhost = host();
     if (myhost) {
-        myhost->WasResized();
+        static_cast<MemoryRenderViewHost*>(myhost)->Memory_WasResized();        
     }
 }
 
