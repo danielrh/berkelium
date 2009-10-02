@@ -100,8 +100,7 @@ public:
     MemoryRenderViewHost(
         SiteInstance* instance,
         RenderViewHostDelegate* delegate,
-        int routing_id,
-        base::WaitableEvent* modal_dialog_event);
+        int routing_id);
     ~MemoryRenderViewHost();
 
     virtual void OnMessageReceived(const IPC::Message& msg);
@@ -116,8 +115,7 @@ public:
     virtual RenderViewHost* CreateRenderViewHost(
         SiteInstance* instance,
         RenderViewHostDelegate* delegate,
-        int routing_id,
-        base::WaitableEvent* modal_dialog_event);
+        int routing_id);
 };
 
 

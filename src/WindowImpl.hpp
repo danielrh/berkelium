@@ -155,6 +155,10 @@ protected: /******* RenderViewHostDelegate *******/
     // "un-crashed"
     virtual void RenderViewReady(RenderViewHost* render_view_host);
 
+
+    virtual void DidDisplayInsecureContent(){}
+    virtual void DidRunInsecureContent(const std::string&){}
+    virtual void CreateNewWindow(int){}
     virtual void DidStartLoading(RenderViewHost* render_view_host);
     virtual void DidStopLoading(RenderViewHost* render_view_host);
 
