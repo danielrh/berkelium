@@ -72,6 +72,10 @@ public:
     WindowImpl(const Context*otherContext);
     virtual ~WindowImpl();
 
+    const GURL &getCurrentURL() {
+        return mCurrentURL;
+    }
+
     void executeJavascript(const std::wstring &javascript);
     bool navigateTo(const std::string &url);
 

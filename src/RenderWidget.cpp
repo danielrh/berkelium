@@ -30,11 +30,18 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "chrome/browser/renderer_host/backing_store.h"
+#if defined(OS_LINUX)
+#include "webkit/glue/plugins/gtk_plugin_container_manager.h"
+#include "webkit/glue/plugins/gtk_plugin_container.h"
+#include <gtk/gtk.h>
+#include <gtk/gtkwindow.h>
+#endif
+
 #include "berkelium/Platform.hpp"
 #include "RenderWidget.hpp"
 #include "WindowImpl.hpp"
 
-#include "chrome/browser/renderer_host/backing_store.h"
 #include <iostream>
 
 namespace Berkelium {
@@ -80,13 +87,6 @@ void RenderWidget::SetSize(const gfx::Size& size){
   // renderer in IPC messages.
 gfx::NativeView RenderWidget::GetNativeView(){
     return gfx::NativeView();
-}
-
-  // Moves all plugin windows as described in the given list.
-void RenderWidget::MovePluginWindows(
-    const std::vector<webkit_glue::WebPluginGeometry>& moves)
-{
-
 }
 
   // Actually set/take focus to/from the associated View component.
@@ -141,7 +141,7 @@ void RenderWidget::IMEUpdateStatus(int control, const gfx::Rect& caret_rect){
   // Thus implementers should generally paint as much of |rect| as possible
   // synchronously with as little overpainting as possible.
 void RenderWidget::DidPaintRect(const gfx::Rect& rect){
-    std::cout << "Painted rect "<<rect;
+//    std::cout << "Painted rect "<<rect << std::endl;
 }
 
   // Informs the view that a portion of the widget's backing store was scrolled
@@ -210,11 +210,93 @@ void RenderWidget::SetActive(bool active){
 #endif
 
 #if defined(OS_LINUX)
+
+static std::map<gfx::PluginWindowHandle, GtkWidget*> activeWidgets;
+
+void RealizeCallback(GtkWidget* widget, void* user_data) {
+    gfx::PluginWindowHandle id = (gfx::PluginWindowHandle)user_data;
+    if (id)
+        gtk_socket_add_id(GTK_SOCKET(widget), id);
+}
+
+
 void RenderWidget::CreatePluginContainer(gfx::PluginWindowHandle id){
+    std::cerr<<"CREATED PLUGIN CONTAINER: "<<id<<std::endl;
+    assert(activeWidgets.find(id) == activeWidgets.end());
+
+    if (!gdk_display_get_default()) {
+        const char *argv0 = "gtk_program";
+        const char **argv = &argv0;
+        int argc = 1;
+        gdk_init(&argc, const_cast<char***>(&argv));
+    }
+
+    GtkWidget *window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+    activeWidgets.insert(
+        std::pair<gfx::PluginWindowHandle, GtkWidget*>(id, window));
+
+    const GURL &current = mWindow->getCurrentURL();
+    std::string pluginTitle = "[Plugin from "+current.spec()+"]";
+    gtk_window_set_title (GTK_WINDOW(window), pluginTitle.c_str());
+
+    GtkWidget *widget = gtk_plugin_container_new();
+
+    // The Realize callback is responsible for adding the plug into the socket.
+    // The reason is 2-fold:
+    // - the plug can't be added until the socket is realized, but this may not
+    // happen until the socket is attached to a top-level window, which isn't the
+    // case for background tabs.
+    // - when dragging tabs, the socket gets unrealized, which breaks the XEMBED
+    // connection. We need to make it again when the tab is reattached, and the
+    // socket gets realized again.
+    //
+    // Note, the RealizeCallback relies on the plugin_window_to_widget_map_ to
+    // have the mapping.
+    g_signal_connect(G_OBJECT(widget), "realize",
+                     G_CALLBACK(RealizeCallback), (void*)id);
+
+    // Don't destroy the widget when the plug is removed.
+    g_signal_connect(G_OBJECT(widget), "plug-removed",
+                     G_CALLBACK(gtk_true), NULL);
+
+    gtk_container_add(GTK_CONTAINER(window), widget);
+    gtk_widget_show(widget);
+
 }
 void RenderWidget::DestroyPluginContainer(gfx::PluginWindowHandle id){
+    std::cerr<<"DESTROYED PLUGIN CONTAINER: "<<id<<std::endl;
+    std::map<gfx::PluginWindowHandle, GtkWidget*>::iterator iter;
+    iter = activeWidgets.find(id);
+    if (iter != activeWidgets.end()) {
+        GtkWidget * w = iter->second;
+        gtk_widget_destroy(w);
+        activeWidgets.erase(iter);
+    }
 }
 #endif
+
+  // Moves all plugin windows as described in the given list.
+void RenderWidget::MovePluginWindows(
+    const std::vector<webkit_glue::WebPluginGeometry>& moves)
+{
+#ifdef OS_LINUX
+    for (size_t i = 0; i < moves.size(); i++) {
+        std::map<gfx::PluginWindowHandle, GtkWidget*>::iterator iter;
+        iter = activeWidgets.find(moves[i].window);
+        if (iter != activeWidgets.end()) {
+            gtk_window_resize(
+                GTK_WINDOW (iter->second),
+                moves[i].window_rect.width(),
+                moves[i].window_rect.height());
+            if (moves[i].visible) {
+                gtk_widget_show (iter->second);
+            } else {
+                gtk_widget_hide (iter->second);
+            }
+        }
+    }
+#endif
+}
 
 
 
