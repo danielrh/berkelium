@@ -228,7 +228,7 @@ void RenderWidget::CreatePluginContainer(gfx::PluginWindowHandle id){
         const char *argv0 = "gtk_program";
         const char **argv = &argv0;
         int argc = 1;
-        gdk_init(&argc, const_cast<char***>(&argv));
+        gtk_init(&argc, const_cast<char***>(&argv));
     }
 
     GtkWidget *window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
