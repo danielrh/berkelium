@@ -36,8 +36,8 @@
 #include "chrome/browser/renderer_host/render_view_host.h"
 #include "chrome/browser/renderer_host/render_view_host_factory.h"
 
+class RenderWidgetHostView;
 namespace Berkelium {
-class RenderWidget;
 class WindowImpl;
 
 
@@ -47,6 +47,7 @@ protected:
     ~MemoryRenderHostBase() {}
 
     void Memory_WasResized();
+public:
 
     void Memory_OnMsgScrollRect(const ViewHostMsg_ScrollRect_Params&params);
     void Memory_OnMsgPaintRect(const ViewHostMsg_PaintRect_Params&params);
@@ -56,20 +57,31 @@ protected:
                                       const gfx::Rect& clip_rect);
     void Memory_PaintBackingStoreRect(TransportDIB* bitmap,
                                       const gfx::Rect& bitmap_rect);
-
+    RenderWidgetHostView *view() {return mWidget;}
+    const RenderWidgetHostView *view() const{return mWidget;}
+    virtual RenderProcessHost * process()=0;
+    virtual int routing_id()const=0;
+    virtual gfx::Rect RootWindowResizerRectSize()const=0;
     WindowImpl *mWindow;
-    RenderWidget *mWidget;
+    RenderWidgetHostView *mWidget;
     gfx::Size current_size_;
+    bool mResizeAckPending;
+    gfx::Size mInFlightSize;
 };
 
 class MemoryRenderWidgetHost : public RenderWidgetHost, public MemoryRenderHostBase {
 public:
     MemoryRenderWidgetHost(
+        RenderViewHostDelegate *win,
+        RenderWidgetHostView*wid,
         RenderProcessHost* process,
         int routing_id);
     ~MemoryRenderWidgetHost();
-
+    virtual bool Send(IPC::Message*msg);
+    virtual RenderProcessHost * process();
+    virtual int routing_id()const;
     virtual void OnMessageReceived(const IPC::Message& msg);
+    virtual gfx::Rect RootWindowResizerRectSize()const;
 };
 
 class MemoryRenderViewHost : public RenderViewHost, public MemoryRenderHostBase {
@@ -80,11 +92,11 @@ public:
         int routing_id,
         base::WaitableEvent* modal_dialog_event);
     ~MemoryRenderViewHost();
-
+    virtual RenderProcessHost * process();
+    virtual int routing_id()const;
     virtual void OnMessageReceived(const IPC::Message& msg);
+    virtual gfx::Rect RootWindowResizerRectSize()const;
 protected:
-    bool mResizeAckPending;
-    gfx::Size mInFlightSize;
 };
 
 class MemoryRenderViewHostFactory : public RenderViewHostFactory {

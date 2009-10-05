@@ -80,8 +80,8 @@ void MemoryRenderViewHost::OnMessageReceived(const IPC::Message& msg) {
 ///////// MemoryRenderWidgetHost /////////
 
 MemoryRenderWidgetHost::MemoryRenderWidgetHost(
-        WindowImpl *win,
-        RenderWidget *wid,
+        RenderViewHostDelegate *delegate,
+        RenderWidgetHostView *wid,
         RenderProcessHost* host,
         int routing_id)
     : RenderWidgetHost(host, routing_id) {
@@ -92,7 +92,7 @@ MemoryRenderWidgetHost::MemoryRenderWidgetHost(
     set_view(wid);
 }
 
-MemoryRenderWidgetHost::~MemoryRenderViewHost() {
+MemoryRenderWidgetHost::~MemoryRenderWidgetHost() {
 }
 
 void MemoryRenderWidgetHost::OnMessageReceived(const IPC::Message& msg) {
@@ -100,7 +100,7 @@ void MemoryRenderWidgetHost::OnMessageReceived(const IPC::Message& msg) {
   IPC_BEGIN_MESSAGE_MAP_EX(MemoryRenderViewHost, msg, msg_is_ok)
     IPC_MESSAGE_HANDLER(ViewHostMsg_ScrollRect, Memory_OnMsgScrollRect)
     IPC_MESSAGE_HANDLER(ViewHostMsg_PaintRect, Memory_OnMsgPaintRect)
-    IPC_MESSAGE_UNHANDLED(RenderViewHost::OnMessageReceived(msg))
+    IPC_MESSAGE_UNHANDLED(this->RenderWidgetHost::OnMessageReceived(msg))
   IPC_END_MESSAGE_MAP_EX()
       ;
 
@@ -142,7 +142,7 @@ void MemoryRenderHostBase::Memory_OnMsgScrollRect(
   // This must be done AFTER we're done painting with the bitmap supplied by the
   // renderer. This ACK is a signal to the renderer that the backing store can
   // be re-used, so the bitmap may be invalid after this call.
-  Send(new ViewMsg_ScrollRect_ACK(routing_id()));
+  process()->Send(new ViewMsg_ScrollRect_ACK(routing_id()));
 
   // Paint the view. Watch out: it might be destroyed already.
   if (view()) {
@@ -154,8 +154,7 @@ void MemoryRenderHostBase::Memory_OnMsgScrollRect(
 
 }
 void MemoryRenderHostBase::Memory_WasResized() {
-    if (mResizeAckPending || !process()->HasConnection() || !view() ||
-        !renderer_initialized_) {
+    if (mResizeAckPending || !process()->HasConnection() || !view() ) {
         return;
     }
     
@@ -174,8 +173,8 @@ void MemoryRenderHostBase::Memory_WasResized() {
     if (!new_size.IsEmpty())
         mResizeAckPending = true;
     
-    if (!Send(new ViewMsg_Resize(routing_id(), new_size,
-                                 GetRootWindowResizerRect())))
+    if (!process()->Send(new ViewMsg_Resize(routing_id(), new_size,
+                                            RootWindowResizerRectSize())))
         mResizeAckPending = false;
     else
         mInFlightSize = new_size;
@@ -228,7 +227,7 @@ void MemoryRenderHostBase::Memory_OnMsgPaintRect(
   // This must be done AFTER we're done painting with the bitmap supplied by the
   // renderer. This ACK is a signal to the renderer that the backing store can
   // be re-used, so the bitmap may be invalid after this call.
-  Send(new ViewMsg_PaintRect_ACK(routing_id()));
+  process()->Send(new ViewMsg_PaintRect_ACK(routing_id()));
 
   // Now paint the view. Watch out: it might be destroyed already.
   if (view()) {
@@ -284,8 +283,25 @@ void MemoryRenderHostBase::Memory_PaintBackingStoreRect(
 }
 
 
+gfx::Rect MemoryRenderViewHost::RootWindowResizerRectSize()const{
+    return GetRootWindowResizerRect();
+}
 
+RenderProcessHost* MemoryRenderViewHost::process() {
+    return RenderViewHost::process();
+}
 
+int MemoryRenderViewHost::routing_id()const{
+    return RenderViewHost::routing_id();
+}
+
+RenderProcessHost* MemoryRenderWidgetHost::process() {
+    return RenderWidgetHost::process();
+}
+
+int MemoryRenderWidgetHost::routing_id()const{
+    return RenderWidgetHost::routing_id();
+}
 ///////// MemoryRenderViewHostFactory /////////
 
 MemoryRenderViewHostFactory::MemoryRenderViewHostFactory() {
