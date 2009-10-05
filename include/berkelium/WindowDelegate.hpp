@@ -54,19 +54,56 @@ public:
     virtual void onLoad(Window *win)=0;
     virtual void onLoadError(Window *win, const std::string &error)=0;
 
-
-    virtual void onPaint(Window *win,
-                         const unsigned char *sourceBuffer,
-                         const Rect &rect,
-                         int dx, int dy,
-                         const Rect &scrollRect)=0;
-
     virtual void onBeforeUnload(Window *win, bool *proceed)=0;
     virtual void onCancelUnload(Window *win)=0;
     virtual void onCrashed(Window *win)=0;
 
-    virtual void onCreatedWindow(Window *win, Window *newWindow)=0;
-//    virtual void onCreatedWidget(Window *win, RenderWidget *newWidget)=0;
+    virtual void onPopupWindow(Window *win, Window *newWindow)=0;
+
+    virtual void onPaint(
+        Window *win,
+        const unsigned char *sourceBuffer,
+        const Rect &rect,
+        int dx, int dy,
+        const Rect &scrollRect)=0;
+
+    /** Linux only. uses an OpenGL texture.
+     * If not using OpenGL, each srcRect will get its own call to 'onPaint'
+     * It should be possible to paint plugins directly onto the canvas.
+     * If this is not possible, then plugins may be created as widgets with
+     * a negative z-index (i.e. below anything else on the screen).
+     */
+    virtual void onPaintPluginTexture(
+        Window *win,
+        void* sourceGLTexture,
+        const std::vector<Rect> srcRects, // relative to destRect
+        const Rect &destRect)=0;
+
+////////// WIDGET FUNCTIONS //////////
+    virtual void onWidgetCreated(Window *win, Widget *newWidget, int zIndex)=0;
+    virtual void onWidgetDestroyed(Window *win, Widget *newWidget)=0;
+
+    // Will be called before the first call to paint.
+    virtual void onWidgetResize(
+        Window *win,
+        Widget *wid,
+        int newWidth,
+        int newHeight)=0;
+
+    // Never called for the main window.
+    virtual void onWidgetMove(
+        Window *win,
+        Widget *wid,
+        int newX,
+        int newY)=0;
+
+    virtual void onWidgetPaint(
+        Window *win,
+        Widget *wid,
+        const unsigned char *sourceBuffer,
+        const Rect &rect,
+        int dx, int dy,
+        const Rect &scrollRect)=0;
 
 /**************************
    Might want messages for:

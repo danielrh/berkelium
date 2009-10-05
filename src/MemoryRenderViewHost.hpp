@@ -30,32 +30,24 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _BERKELIUM_MEMORYRENDERWIDGET_HPP_
-#define _BERKELIUM_MEMORYRENDERWIDGET_HPP_
+#ifndef _BERKELIUM_MEMORYRENDERVIEWHOST_HPP_
+#define _BERKELIUM_MEMORYRENDERVIEWHOST_HPP_
 
 #include "chrome/browser/renderer_host/render_view_host.h"
 #include "chrome/browser/renderer_host/render_view_host_factory.h"
 
 namespace Berkelium {
+class RenderWidget;
 class WindowImpl;
 
 
-class MemoryRenderViewHost : public RenderViewHost {
-
-public:
-    MemoryRenderViewHost(
-        SiteInstance* instance,
-        RenderViewHostDelegate* delegate,
-        int routing_id,
-        base::WaitableEvent* modal_dialog_event);
-    ~MemoryRenderViewHost();
-
-    virtual void OnMessageReceived(const IPC::Message& msg);
-    void Memory_WasResized();
+class MemoryRenderHostBase {
 protected:
-    bool mResizeAckPending;
-    gfx::Size mInFlightSize;
-private:
+    MemoryRenderHostBase() {}
+    ~MemoryRenderHostBase() {}
+
+    void Memory_WasResized();
+
     void Memory_OnMsgScrollRect(const ViewHostMsg_ScrollRect_Params&params);
     void Memory_OnMsgPaintRect(const ViewHostMsg_PaintRect_Params&params);
     void Memory_ScrollBackingStoreRect(TransportDIB* bitmap,
@@ -66,8 +58,33 @@ private:
                                       const gfx::Rect& bitmap_rect);
 
     WindowImpl *mWindow;
+    RenderWidget *mWidget;
     gfx::Size current_size_;
+};
 
+class MemoryRenderWidgetHost : public RenderWidgetHost, public MemoryRenderHostBase {
+public:
+    MemoryRenderWidgetHost(
+        RenderProcessHost* process,
+        int routing_id);
+    ~MemoryRenderWidgetHost();
+
+    virtual void OnMessageReceived(const IPC::Message& msg);
+};
+
+class MemoryRenderViewHost : public RenderViewHost, public MemoryRenderHostBase {
+public:
+    MemoryRenderViewHost(
+        SiteInstance* instance,
+        RenderViewHostDelegate* delegate,
+        int routing_id,
+        base::WaitableEvent* modal_dialog_event);
+    ~MemoryRenderViewHost();
+
+    virtual void OnMessageReceived(const IPC::Message& msg);
+protected:
+    bool mResizeAckPending;
+    gfx::Size mInFlightSize;
 };
 
 class MemoryRenderViewHostFactory : public RenderViewHostFactory {
@@ -82,6 +99,7 @@ public:
         int routing_id,
         base::WaitableEvent* modal_dialog_event);
 };
+
 
 }
 

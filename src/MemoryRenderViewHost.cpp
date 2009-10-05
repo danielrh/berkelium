@@ -42,6 +42,8 @@
 
 namespace Berkelium {
 
+///////// MemoryRenderViewHost /////////
+
 MemoryRenderViewHost::MemoryRenderViewHost(
         SiteInstance* instance,
         RenderViewHostDelegate* delegate,
@@ -50,6 +52,7 @@ MemoryRenderViewHost::MemoryRenderViewHost(
     : RenderViewHost(instance, delegate, routing_id, modal_dialog_event) {
 
     mWindow = static_cast<WindowImpl*>(delegate);
+    mWidget = NULL;
     mResizeAckPending=true;
 }
 
@@ -63,16 +66,7 @@ void MemoryRenderViewHost::OnMessageReceived(const IPC::Message& msg) {
     IPC_MESSAGE_HANDLER(ViewHostMsg_PaintRect, Memory_OnMsgPaintRect)
     IPC_MESSAGE_UNHANDLED(RenderViewHost::OnMessageReceived(msg))
   IPC_END_MESSAGE_MAP_EX()
-
       ;
-/*
-  if (msg.type() == ViewHostMsg_PaintRect::ID) {
-      RenderViewHost::OnMessageReceived(msg);
-  }
-  if (msg.type() == ViewHostMsg_ScrollRect::ID) {
-      RenderViewHost::OnMessageReceived(msg);
-  }
-*/
 
   if (!msg_is_ok) {
     // The message had a handler, but its de-serialization failed.
@@ -81,7 +75,49 @@ void MemoryRenderViewHost::OnMessageReceived(const IPC::Message& msg) {
   }
 }
 
-void MemoryRenderViewHost::Memory_OnMsgScrollRect(
+
+
+///////// MemoryRenderWidgetHost /////////
+
+MemoryRenderWidgetHost::MemoryRenderWidgetHost(
+        WindowImpl *win,
+        RenderWidget *wid,
+        RenderProcessHost* host,
+        int routing_id)
+    : RenderWidgetHost(host, routing_id) {
+
+    mWindow = static_cast<WindowImpl*>(delegate);
+    mWidget = wid;
+
+    set_view(wid);
+}
+
+MemoryRenderWidgetHost::~MemoryRenderViewHost() {
+}
+
+void MemoryRenderWidgetHost::OnMessageReceived(const IPC::Message& msg) {
+  bool msg_is_ok = true;
+  IPC_BEGIN_MESSAGE_MAP_EX(MemoryRenderViewHost, msg, msg_is_ok)
+    IPC_MESSAGE_HANDLER(ViewHostMsg_ScrollRect, Memory_OnMsgScrollRect)
+    IPC_MESSAGE_HANDLER(ViewHostMsg_PaintRect, Memory_OnMsgPaintRect)
+    IPC_MESSAGE_UNHANDLED(RenderViewHost::OnMessageReceived(msg))
+  IPC_END_MESSAGE_MAP_EX()
+      ;
+
+  if (!msg_is_ok) {
+    // The message had a handler, but its de-serialization failed.
+    // Kill the renderer.
+    process()->ReceivedBadMessage(msg.type());
+  }
+}
+
+
+
+
+
+///////// MemoryRenderHostBase common functions /////////
+
+void MemoryRenderHostBase::Memory_OnMsgScrollRect(
     const ViewHostMsg_ScrollRect_Params& params) {
 
   DCHECK(!params.view_size.IsEmpty());
@@ -117,7 +153,7 @@ void MemoryRenderViewHost::Memory_OnMsgScrollRect(
   }
 
 }
-void MemoryRenderViewHost::Memory_WasResized() {
+void MemoryRenderHostBase::Memory_WasResized() {
     if (mResizeAckPending || !process()->HasConnection() || !view() ||
         !renderer_initialized_) {
         return;
@@ -144,7 +180,7 @@ void MemoryRenderViewHost::Memory_WasResized() {
     else
         mInFlightSize = new_size;
 }
-void MemoryRenderViewHost::Memory_OnMsgPaintRect(
+void MemoryRenderHostBase::Memory_OnMsgPaintRect(
     const ViewHostMsg_PaintRect_Params&params)
 {
   current_size_ = params.view_size;
@@ -213,7 +249,7 @@ void MemoryRenderViewHost::Memory_OnMsgPaintRect(
 
 }
 
-void MemoryRenderViewHost::Memory_ScrollBackingStoreRect(
+void MemoryRenderHostBase::Memory_ScrollBackingStoreRect(
     TransportDIB* bitmap,
     const gfx::Rect& bitmap_rect,
     int dx, int dy,
@@ -240,13 +276,17 @@ void MemoryRenderViewHost::Memory_ScrollBackingStoreRect(
 
 }
 
-void MemoryRenderViewHost::Memory_PaintBackingStoreRect(
+void MemoryRenderHostBase::Memory_PaintBackingStoreRect(
     TransportDIB* bitmap,
     const gfx::Rect& bitmap_rect)
 {
     Memory_ScrollBackingStoreRect(bitmap, bitmap_rect, 0, 0, gfx::Rect());
 }
 
+
+
+
+///////// MemoryRenderViewHostFactory /////////
 
 MemoryRenderViewHostFactory::MemoryRenderViewHostFactory() {
     RenderViewHostFactory::RegisterFactory(this);
