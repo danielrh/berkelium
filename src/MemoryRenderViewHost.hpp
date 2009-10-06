@@ -40,11 +40,26 @@ class RenderWidgetHostView;
 namespace Berkelium {
 class WindowImpl;
 
-
 class MemoryRenderHostBase {
-protected:
     MemoryRenderHostBase() {}
-    ~MemoryRenderHostBase() {}
+    virtual ~MemoryRenderHostBase() {}
+
+    virtual void Memory_OnMsgScrollRect(const ViewHostMsg_ScrollRect_Params&params)=0;
+    virtual void Memory_OnMsgPaintRect(const ViewHostMsg_PaintRect_Params&params)=0;
+    virtual void Memory_ScrollBackingStoreRect(TransportDIB* bitmap,
+                                      const gfx::Rect& bitmap_rect,
+                                      int dx, int dy,
+                                      const gfx::Rect& clip_rect)=0;
+    virtual void Memory_PaintBackingStoreRect(TransportDIB* bitmap,
+                                      const gfx::Rect& bitmap_rect)=0;
+
+};
+
+template <class RenderXHost> class MemoryRenderHostImpl: public RenderXHost {
+protected:
+    template<class A, class B, class C, class D> MemoryRenderHostImpl(A a, B b, C c, D d):RenderXHost(a,b,c,d) {}
+    template<class A, class B> MemoryRenderHostImpl(A a, B b):RenderXHost(a,b) {}
+    ~MemoryRenderHostImpl() {}
 
     void Memory_WasResized();
 public:
@@ -57,11 +72,7 @@ public:
                                       const gfx::Rect& clip_rect);
     void Memory_PaintBackingStoreRect(TransportDIB* bitmap,
                                       const gfx::Rect& bitmap_rect);
-    RenderWidgetHostView *view() {return mWidget;}
-    const RenderWidgetHostView *view() const{return mWidget;}
-    virtual RenderProcessHost * process()=0;
-    virtual int routing_id()const=0;
-    virtual gfx::Rect RootWindowResizerRectSize()const=0;
+protected:
     WindowImpl *mWindow;
     RenderWidgetHostView *mWidget;
     gfx::Size current_size_;
@@ -69,7 +80,7 @@ public:
     gfx::Size mInFlightSize;
 };
 
-class MemoryRenderWidgetHost : public RenderWidgetHost, public MemoryRenderHostBase {
+class MemoryRenderWidgetHost : public MemoryRenderHostImpl<RenderWidgetHost> {
 public:
     MemoryRenderWidgetHost(
         RenderViewHostDelegate *win,
@@ -84,7 +95,7 @@ public:
     virtual gfx::Rect RootWindowResizerRectSize()const;
 };
 
-class MemoryRenderViewHost : public RenderViewHost, public MemoryRenderHostBase {
+class MemoryRenderViewHost : public MemoryRenderHostImpl <RenderViewHost> {
 public:
     MemoryRenderViewHost(
         SiteInstance* instance,

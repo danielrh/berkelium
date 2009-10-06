@@ -47,7 +47,7 @@ namespace Berkelium {
 class WindowView;
 class RenderWidget;
 class MemoryRenderViewHost;
-
+class Rect;
 class WindowImpl :
         public Window,
         public RenderViewHostDelegate,
