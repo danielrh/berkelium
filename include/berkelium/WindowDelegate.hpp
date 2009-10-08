@@ -33,9 +33,12 @@
 #ifndef _BERKELIUM_WINDOW_DELEGATE_HPP_
 #define _BERKELIUM_WINDOW_DELEGATE_HPP_
 
+#include <vector>
+
 namespace Berkelium {
 
 class WindowImpl;
+class Widget;
 class Window;
 
 class RenderWidget; // FIXME: private interface.
@@ -58,7 +61,7 @@ public:
     virtual void onCancelUnload(Window *win)=0;
     virtual void onCrashed(Window *win)=0;
 
-    virtual void onPopupWindow(Window *win, Window *newWindow)=0;
+    virtual void onCreatedWindow(Window *win, Window *newWindow)=0;
 
     virtual void onPaint(
         Window *win,

@@ -61,9 +61,9 @@ protected:
     template<class A, class B> MemoryRenderHostImpl(A a, B b):RenderXHost(a,b) {}
     ~MemoryRenderHostImpl() {}
 
-    void Memory_WasResized();
 public:
 
+    void Memory_WasResized();
     void Memory_OnMsgScrollRect(const ViewHostMsg_ScrollRect_Params&params);
     void Memory_OnMsgPaintRect(const ViewHostMsg_PaintRect_Params&params);
     void Memory_ScrollBackingStoreRect(TransportDIB* bitmap,
@@ -74,7 +74,7 @@ public:
                                       const gfx::Rect& bitmap_rect);
 protected:
     WindowImpl *mWindow;
-    RenderWidgetHostView *mWidget;
+    RenderWidget *mWidget;
     gfx::Size current_size_;
     bool mResizeAckPending;
     gfx::Size mInFlightSize;
@@ -88,11 +88,7 @@ public:
         RenderProcessHost* process,
         int routing_id);
     ~MemoryRenderWidgetHost();
-    virtual bool Send(IPC::Message*msg);
-    virtual RenderProcessHost * process();
-    virtual int routing_id()const;
     virtual void OnMessageReceived(const IPC::Message& msg);
-    virtual gfx::Rect RootWindowResizerRectSize()const;
 };
 
 class MemoryRenderViewHost : public MemoryRenderHostImpl <RenderViewHost> {
@@ -103,11 +99,7 @@ public:
         int routing_id,
         base::WaitableEvent* modal_dialog_event);
     ~MemoryRenderViewHost();
-    virtual RenderProcessHost * process();
-    virtual int routing_id()const;
     virtual void OnMessageReceived(const IPC::Message& msg);
-    virtual gfx::Rect RootWindowResizerRectSize()const;
-protected:
 };
 
 class MemoryRenderViewHostFactory : public RenderViewHostFactory {

@@ -118,6 +118,38 @@ public:
         std::cout << "*** onCreatedWindow from source "<<mURL<<std::endl;
         newWindow->setDelegate(new TestDelegate);
     }
+
+    virtual void onPaintPluginTexture(
+        Window *win,
+        void* sourceGLTexture,
+        const std::vector<Rect> srcRects, // relative to destRect
+        const Rect &destRect) {}
+
+////////// WIDGET FUNCTIONS //////////
+    virtual void onWidgetCreated(Window *win, Widget *newWidget, int zIndex) {}
+    virtual void onWidgetDestroyed(Window *win, Widget *newWidget) {}
+
+    // Will be called before the first call to paint.
+    virtual void onWidgetResize(
+        Window *win,
+        Widget *wid,
+        int newWidth,
+        int newHeight) {}
+
+    // Never called for the main window.
+    virtual void onWidgetMove(
+        Window *win,
+        Widget *wid,
+        int newX,
+        int newY) {}
+
+    virtual void onWidgetPaint(
+        Window *win,
+        Widget *wid,
+        const unsigned char *sourceBuffer,
+        const Rect &rect,
+        int dx, int dy,
+        const Rect &scrollRect) {}
 };
 
 #define WIDTH 1024

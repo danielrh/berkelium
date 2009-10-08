@@ -46,17 +46,21 @@
 
 namespace Berkelium {
 
-RenderWidget::RenderWidget(WindowImpl *winImpl, RenderWidgetHost* host) {
-    mHost = host;
+RenderWidget::RenderWidget(WindowImpl *winImpl) {
     mFocused = true;
     mBacking = NULL;
     mWindow = winImpl;
+}
+
+void RenderWidget::setHost(RenderWidgetHost *host) {
+    mHost = host;
 }
 
 RenderWidget::~RenderWidget() {
     if (mBacking) {
         delete mBacking;
     }
+    mWindow->onWidgetDestroyed(this);
 }
 
 void RenderWidget::InitAsPopup(RenderWidgetHostView* parent_host_view,

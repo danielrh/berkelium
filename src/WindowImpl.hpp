@@ -32,6 +32,7 @@
 
 #ifndef _BERKELIUM_WINDOWIMPL_HPP_
 #define _BERKELIUM_WINDOWIMPL_HPP_
+#include "berkelium/Widget.hpp"
 #include "berkelium/Window.hpp"
 #include "base/gfx/rect.h"
 #include "base/gfx/size.h"
@@ -110,8 +111,10 @@ public:
     void textEvent(std::wstring evt);
     void keyEvent(bool pressed, int mods, int vk_code, int scancode);
 
-    void onPaint(const unsigned char *sourceBuffer, const Rect &rect,
+    void onPaint(Widget *wid,
+                 const unsigned char *sourceBuffer, const Rect &rect,
                  int dx, int dy, const Rect &scrollRect);
+    void onWidgetDestroyed(Widget *wid);
 protected:
     ContextImpl *getContextImpl() const;
 
@@ -200,6 +203,7 @@ protected: /******* RenderViewHostDelegate::View *******/
 private:
 
     GURL mCurrentURL;
+    int zIndex;
 
     gfx::Rect mRect;
     NavigationEntry *mLastNavEntry;

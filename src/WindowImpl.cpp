@@ -72,6 +72,7 @@ WindowImpl::WindowImpl(const Context*otherContext):Window(otherContext) {
     mNavEntry = NULL;
     mWindowX=mWindowY=0;
     mModifiers=0;
+    zIndex = 0;
     init(mContext->getImpl()->getSiteInstance());
 }
 WindowImpl::~WindowImpl() {
@@ -245,12 +246,26 @@ ContextImpl *WindowImpl::getContextImpl() const {
     return static_cast<ContextImpl*>(getContext());
 }
 
-void WindowImpl::onPaint(const unsigned char *sourceBuffer, const Rect &rect,
+void WindowImpl::onPaint(Widget *wid,
+                         const unsigned char *sourceBuffer, const Rect &rect,
                          int dx, int dy, const Rect &scrollRect) {
     if (mDelegate) {
-        mDelegate->onPaint(this, sourceBuffer, rect, dx, dy, scrollRect);
+        if (wid) {
+            mDelegate->onWidgetPaint(
+                this, wid, sourceBuffer, rect, dx, dy, scrollRect);
+        } else {
+            mDelegate->onPaint(
+                this, sourceBuffer, rect, dx, dy, scrollRect);
+        }
     }
 }
+
+void WindowImpl::onWidgetDestroyed(Widget *wid) {
+    if (wid != static_cast<RenderWidget*>(view())) {
+        mDelegate->onWidgetDestroyed(this, wid);
+    }
+}
+
 
 
 /******* RenderViewHostManager::Delegate *******/
@@ -339,7 +354,9 @@ RenderViewHostDelegate::Resource* WindowImpl::GetResourceDelegate() {
 /******* RenderViewHostDelegate::Resource *******/
 
 RenderWidgetHostView* WindowImpl::CreateViewForWidget(RenderWidgetHost*render_widget_host) {
-    return new RenderWidget(this, render_widget_host);
+    RenderWidget *wid = new RenderWidget(this);
+    wid->setHost(render_widget_host);
+    return wid;
 }
 
 void WindowImpl::DidStartProvisionalLoadForFrame(
@@ -424,6 +441,18 @@ void WindowImpl::ShowCreatedWindow(int route_id,
 }
 void WindowImpl::ShowCreatedWidget(int route_id,
                                    const gfx::Rect& initial_pos) {
+    RenderWidget* wid = new RenderWidget(this);
+    new MemoryRenderWidgetHost(this, wid, process(), host()->routing_id());
+    wid->SetSize(gfx::Size(initial_pos.width(), initial_pos.height()));
+    //FIXME???//widHost->resize(initial_pos.width(), initial_pos.height());
+    if (mDelegate) {
+        mDelegate->onWidgetCreated(this, wid, ++zIndex);
+        mDelegate->onWidgetResize(this, wid,
+                                  initial_pos.width(), initial_pos.height());
+        mDelegate->onWidgetMove(this, wid,
+                                initial_pos.x(), initial_pos.y());
+    }
+
 }
 void WindowImpl::ShowContextMenu(const ContextMenuParams& params) {
     // TODO: Add context menu event

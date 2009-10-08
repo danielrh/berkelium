@@ -32,7 +32,8 @@
 
 #include "berkelium/Platform.hpp"
 #include "WindowImpl.hpp"
-#include "berkelium/Rect.hpp"
+#include "berkelium/Window.hpp"
+#include "RenderWidget.hpp"
 #include "MemoryRenderViewHost.hpp"
 #include <stdio.h>
 
@@ -88,7 +89,7 @@ MemoryRenderWidgetHost::MemoryRenderWidgetHost(
     : MemoryRenderHostImpl<RenderWidgetHost>(host, routing_id) {
 
     mWindow = static_cast<WindowImpl*>(delegate);
-    mWidget = wid;
+    mWidget = static_cast<RenderWidget*>(wid);
 
     set_view(wid);
 }
@@ -268,6 +269,7 @@ template <class T> void MemoryRenderHostImpl<T>::Memory_ScrollBackingStoreRect(
     clipRect.mHeight = clip_rect.height();
 
     mWindow->onPaint(
+        mWidget,
         static_cast<const unsigned char *>(bitmap->memory()),
         updateRect,
         dx,
@@ -324,6 +326,10 @@ RenderViewHost* MemoryRenderViewHostFactory::CreateRenderViewHost(
     return new MemoryRenderViewHost(instance, delegate,
                                     routing_id, modal_dialog_event);
 }
+
+
+template class MemoryRenderHostImpl<RenderWidgetHost>;
+template class MemoryRenderHostImpl<RenderViewHost>;
 
 }
 

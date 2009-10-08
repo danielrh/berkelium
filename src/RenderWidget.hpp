@@ -33,6 +33,7 @@
 #ifndef _BERKELIUM_RENDERWIDGET_HPP_
 #define _BERKELIUM_RENDERWIDGET_HPP_
 
+#include "berkelium/Widget.hpp"
 #include "chrome/browser/renderer_host/render_widget_host.h"
 #include "chrome/browser/renderer_host/render_widget_host_view.h"
 
@@ -42,11 +43,13 @@ namespace Berkelium {
 class WindowImpl;
 
 
-class RenderWidget : public RenderWidgetHostView {
+class RenderWidget : public RenderWidgetHostView, public Widget {
 
 public:
-    RenderWidget(WindowImpl *winImpl, RenderWidgetHost* host);
+    RenderWidget(WindowImpl *winImpl);
     ~RenderWidget();
+
+    void setHost(RenderWidgetHost *host);
 
 public: /******* RenderWidgetHostView *******/
 
