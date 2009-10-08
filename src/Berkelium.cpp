@@ -232,12 +232,7 @@ void forkedProcessHook(int argc, char **argv) {
       parsed_command_line.GetSwitchValue(switches::kProcessType);
 
 #if defined(OS_MACOSX)
-  // If process_type is not empty, this is the helper.  Set the main app bundle
-  // so code can fetch Mac resources.
-  if (!process_type.empty()) {
-    FilePath main_path(chrome::GetBrowserBundlePath());
-    mac_util::SetOverrideAppBundlePath(main_path);
-  }
+  mac_util::SetOverrideAppBundlePath(chrome::GetFrameworkBundlePath());
 #endif  // OS_MACOSX
 
 #if defined(OS_WIN)
