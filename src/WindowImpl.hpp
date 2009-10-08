@@ -117,6 +117,7 @@ protected: /******* RenderViewHostDelegate *******/
 
     virtual RenderViewHostDelegate::View* GetViewDelegate();
     virtual RenderViewHostDelegate::Resource* GetResourceDelegate();
+    virtual bool IsReservedAccelerator(const NativeWebKeyboardEvent&) {return false;}
     virtual void DidDisplayInsecureContent(){}
     virtual void DidRunInsecureContent(const std::string&){}
     virtual void CreateNewWindow(int){}
