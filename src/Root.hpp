@@ -39,6 +39,7 @@
 class BrowserRenderProcessHost;
 class ProcessSingleton;
 class ChromeThread;
+class URLRequestContext;
 
 namespace Berkelium {
 
@@ -47,6 +48,7 @@ class MemoryRenderViewHostFactory;
 //singleton class that contains chromium singletons. Not visible outside of Berkelium library core
 class Root:public AutoSingleton<Root> {
     Profile*mProf;
+    URLRequestContext *mDefaultRequestContext;
     MessageLoop* mMessageLoop;
     NotificationService*mNotificationService;
     ProcessSingleton *mProcessSingleton;

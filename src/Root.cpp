@@ -177,6 +177,7 @@ Root::Root (){
     PluginService::GetInstance()->LoadChromePlugins(resDispatcher);
 
     PathService::Override(base::FILE_EXE, FilePath("./berkelium"));
+    mDefaultRequestContext=mProf->GetRequestContext();
 }
 
 /*

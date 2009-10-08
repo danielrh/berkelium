@@ -49,6 +49,7 @@ MemoryRenderViewHost::MemoryRenderViewHost(
     : RenderViewHost(instance, delegate, routing_id) {
 
     mWindow = static_cast<WindowImpl*>(delegate);
+    mResizeAckPending=true;
 }
 
 MemoryRenderViewHost::~MemoryRenderViewHost() {
@@ -115,7 +116,33 @@ void MemoryRenderViewHost::Memory_OnMsgScrollRect(
   }
 
 }
-
+void MemoryRenderViewHost::Memory_WasResized() {
+    if (mResizeAckPending || !process()->HasConnection() || !view() ||
+        !renderer_initialized_) {
+        return;
+    }
+    
+    gfx::Rect view_bounds = view()->GetViewBounds();
+    gfx::Size new_size(view_bounds.width(), view_bounds.height());
+    
+    // Avoid asking the RenderWidget to resize to its current size, since it
+    // won't send us a PaintRect message in that case.
+    if (new_size == current_size_ || current_size_== gfx::Size())
+        return;
+    
+    if (mInFlightSize != gfx::Size())
+        return;
+    
+    // We don't expect to receive an ACK when the requested size is empty.
+    if (!new_size.IsEmpty())
+        mResizeAckPending = true;
+    
+    if (!Send(new ViewMsg_Resize(routing_id(), new_size,
+                                 GetRootWindowResizerRect())))
+        mResizeAckPending = false;
+    else
+        mInFlightSize = new_size;
+}
 void MemoryRenderViewHost::Memory_OnMsgPaintRect(
     const ViewHostMsg_PaintRect_Params&params)
 {
@@ -130,6 +157,9 @@ void MemoryRenderViewHost::Memory_OnMsgPaintRect(
     // resize_ack_pending_ needs to be cleared before we call DidPaintRect, since
     // that will end up reaching GetBackingStore.
     if (is_resize_ack) {
+        assert(mResizeAckPending);
+        mResizeAckPending=false;
+        mInFlightSize.SetSize(0,0);
         //PRIV//DCHECK(resize_ack_pending_);
         //PRIV//resize_ack_pending_ = false;
         //PRIV//in_flight_size_.SetSize(0, 0);
@@ -176,7 +206,7 @@ void MemoryRenderViewHost::Memory_OnMsgPaintRect(
     gfx::Rect view_bounds = view()->GetViewBounds();
     if (current_size_.width() != view_bounds.width() ||
         current_size_.height() != view_bounds.height()) {
-      WasResized();
+      Memory_WasResized();
     }
   }
 
