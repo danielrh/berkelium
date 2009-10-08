@@ -39,6 +39,7 @@
 class RenderWidgetHostView;
 namespace Berkelium {
 class WindowImpl;
+class RenderWidget;
 
 class MemoryRenderHostBase {
     MemoryRenderHostBase() {}
