@@ -33,42 +33,16 @@
 #ifndef _BERKELIUM_WINDOW_HPP_
 #define _BERKELIUM_WINDOW_HPP_
 
+#include <vector>
+
 #include "berkelium/Context.hpp"
+#include "berkelium/Rect.hpp"
 
 namespace Berkelium {
 
 class WindowImpl;
 class Widget;
 class WindowDelegate;
-
-struct Rect {
-    int mTop;
-    int mLeft;
-    int mWidth;
-    int mHeight;
-
-    int top() const { return mTop; }
-    int left() const { return mLeft; }
-    int width() const { return mWidth; }
-    int height() const { return mHeight; }
-    int right() const { return mLeft + mWidth; }
-    int bottom() const { return mTop + mHeight; }
-
-    Rect intersect(const Rect &rect) {
-        int rx = std::max(left(), rect.left());
-        int ry = std::max(top(), rect.top());
-        int rr = std::min(right(), rect.right());
-        int rb = std::min(bottom(), rect.bottom());
-        if (rx >= rr || ry >= rb)
-            rx = ry = rr = rb = 0;  // non-intersecting
-        Rect ret;
-        ret.mLeft = rx;
-        ret.mTop = ry;
-        ret.mWidth = rr-rx;
-        ret.mHeight = rb-ry;
-        return ret;
-    }
-};
 
 enum KeyModifier {
 	SHIFT_MOD	= 1 << 0,
@@ -82,6 +56,11 @@ enum KeyModifier {
 
 class BERKELIUM_EXPORT Window {
 protected:
+    typedef std::vector<Widget*> WidgetList;
+public:
+    typedef WidgetList::const_iterator BackToFrontIter;
+    typedef WidgetList::const_reverse_iterator FrontToBackIter;
+protected:
     Window();
     Window (const Context*otherContext);
 
@@ -90,7 +69,7 @@ public:
     static Window* create(const Context&otherContext);
     virtual ~Window();
 
-    virtual Widget* getWidget() const; // could return NULL.
+    virtual Widget* getWidget() const=0; // could return NULL.
 
     inline Context *getContext() const {
         return mContext;
@@ -99,6 +78,47 @@ public:
     void setDelegate(WindowDelegate *delegate) {
         mDelegate = delegate;
     }
+
+    void appendWidget(Widget *wid) {
+        mWidgets.push_back(wid);
+    }
+    void removeWidget(Widget *wid) {
+        for (WidgetList::iterator it = mWidgets.begin();
+             it != backEnd();
+             ++it)
+        {
+            if (*it == wid) {
+                mWidgets.erase(it);
+                return;
+            }
+        }
+    }
+    BackToFrontIter backIter() const {
+        return mWidgets.begin();
+    }
+    BackToFrontIter backEnd() const {
+        return mWidgets.end();
+    }
+
+    FrontToBackIter frontIter() const {
+        return mWidgets.rbegin();
+    }
+    FrontToBackIter frontEnd() const {
+        return mWidgets.rend();
+    }
+
+    Widget *getWidgetAtPoint(int xPos, int yPos, bool returnRootIfOutside=false) const;
+
+    virtual void focus()=0;
+    virtual void unfocus()=0;
+
+    virtual void mouseMoved(int xPos, int yPos)=0;
+    virtual void mouseButton(unsigned int buttonID, bool down)=0;
+    virtual void mouseWheel(int xScroll, int yScroll)=0;
+
+    virtual void textEvent(std::wstring evt)=0;
+    virtual void keyEvent(bool pressed, int mods, int vk_code, int scancode)=0;
+
 
     virtual void resize(int width, int height)=0;
     virtual void executeJavascript(const std::wstring &javascript)=0;
@@ -118,6 +138,7 @@ protected:
     Context *mContext;
     WindowDelegate *mDelegate;
 
+    WidgetList mWidgets;
 };
 
 }

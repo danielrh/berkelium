@@ -52,21 +52,32 @@
 
 namespace Berkelium {
 //WindowImpl temp;
-void WindowImpl::init(SiteInstance*site) {
+void WindowImpl::init(SiteInstance*site, int routing_id) {
     mRenderViewHost = RenderViewHostFactory::Create(
         site,
         this,
-        MSG_ROUTING_NONE,
+        routing_id,
         NULL);
     CreateRenderViewForRenderManager(host());
 }
 
 WindowImpl::WindowImpl(const Context*otherContext):Window(otherContext) {
+    mMouseX = 0;
+    mMouseY = 0;
     mCurrentURL = GURL("about:blank");
     mLastNavEntry = NULL;
     mNavEntry = NULL;
     zIndex = 0;
-    init(mContext->getImpl()->getSiteInstance());
+    init(mContext->getImpl()->getSiteInstance(), MSG_ROUTING_NONE);
+}
+WindowImpl::WindowImpl(const Context*otherContext, int routing_id):Window(otherContext) {
+    mMouseX = 0;
+    mMouseY = 0;
+    mCurrentURL = GURL("about:blank");
+    mLastNavEntry = NULL;
+    mNavEntry = NULL;
+    zIndex = 0;
+    init(mContext->getImpl()->getSiteInstance(), routing_id);
 }
 WindowImpl::~WindowImpl() {
     RenderViewHost* render_view_host = mRenderViewHost;
@@ -114,6 +125,69 @@ void MakeNavigateParams(const NavigationEntry& entry, bool reload,
 Widget *WindowImpl::getWidget() const {
     return static_cast<RenderWidget*>(view());
 }
+
+
+void WindowImpl::focus() {
+    FrontToBackIter iter = frontIter();
+    if (iter != frontEnd()) {
+        (*iter)->focus();
+        ++iter;
+    }
+    while (iter != frontEnd()) {
+        (*iter)->unfocus();
+        ++iter;
+    }
+    getWidget()->focus();
+}
+void WindowImpl::unfocus() {
+    FrontToBackIter iter = frontIter();
+    while (iter != frontEnd()) {
+        (*iter)->unfocus();
+        ++iter;
+    }
+}
+
+void WindowImpl::mouseMoved(int xPos, int yPos) {
+    mMouseX = xPos;
+    mMouseY = yPos;
+    for (BackToFrontIter iter = backIter(); iter != backEnd(); ++iter) {
+        Rect r = (*iter)->getRect();
+        (*iter)->mouseMoved(xPos - r.left(), yPos - r.top());
+    }
+}
+void WindowImpl::mouseButton(unsigned int buttonID, bool down) {
+    FrontToBackIter iter = frontIter();
+    if (iter != frontEnd()) {
+        (*iter)->mouseButton(buttonID, down);
+    }
+/*
+    Widget *wid = getWidgetAtPoint(root->mMouseX, root->mMouseY, true);
+    if (wid) {
+        wid->mouseButton(buttonID, down);
+    }
+*/
+}
+void WindowImpl::mouseWheel(int xScroll, int yScroll) {
+    FrontToBackIter iter = frontIter();
+    if (iter != frontEnd()) {
+        (*iter)->mouseWheel(xScroll, yScroll);
+    }
+}
+
+void WindowImpl::textEvent(std::wstring evt) {
+    FrontToBackIter iter = frontIter();
+    if (iter != frontEnd()) {
+        (*iter)->textEvent(evt);
+    }
+}
+void WindowImpl::keyEvent(bool pressed, int mods, int vk_code, int scancode) {
+    FrontToBackIter iter = frontIter();
+    if (iter != frontEnd()) {
+        (*iter)->keyEvent(pressed, mods, vk_code, scancode);
+    }
+}
+
+
 
 void WindowImpl::resize(int width, int height) {
     SetContainerBounds(gfx::Rect(0, 0, width, height));
@@ -255,6 +329,7 @@ void WindowImpl::onWidgetDestroyed(Widget *wid) {
     if (wid != getWidget()) {
         mDelegate->onWidgetDestroyed(this, wid);
     }
+    removeWidget(wid);
 }
 
 
@@ -273,6 +348,8 @@ bool WindowImpl::CreateRenderViewForRenderManager(
   // Now that the RenderView has been created, we need to tell it its size.
   rwh_view->SetSize(this->GetContainerSize());
   render_view_host->set_view(rwh_view);
+
+  appendWidget(rwh_view);
 
 //  UpdateMaxPageIDIfNecessary(render_view_host->site_instance(),
 //                             render_view_host);
@@ -414,18 +491,26 @@ void WindowImpl::DocumentLoadedInFrame() {
 /******* RenderViewHostDelegate::View *******/
 void WindowImpl::CreateNewWindow(int route_id,
                                  base::WaitableEvent* modal_dialog_event) {
-    // TODO: Support multiple windows.
+    std::cout<<"Created window!"<<std::endl;
+    mNewlyCreatedWindows.insert(
+        std::pair<int, WindowImpl*>(route_id, new WindowImpl(getContext(), route_id)));
 }
 void WindowImpl::CreateNewWidget(int route_id, bool activatable) {
-    // TODO: Support multiple windows.
+    std::cout<<"Created widget!"<<std::endl;
+    RenderWidget* wid = new RenderWidget(this);
+    new MemoryRenderWidgetHost(this, wid, process(), route_id);
+    mNewlyCreatedWidgets.insert(
+        std::pair<int, RenderWidget*>(route_id, wid));
 }
 void WindowImpl::ShowCreatedWindow(int route_id,
                                    WindowOpenDisposition disposition,
                                    const gfx::Rect& initial_pos,
                                    bool user_gesture,
                                    const GURL& creator_url) {
-    std::cout<<"Created window!"<<std::endl;
-    WindowImpl *win = new WindowImpl(getContext());
+    std::map<int, WindowImpl*>::iterator iter = mNewlyCreatedWindows.find(route_id);
+    assert(iter != mNewlyCreatedWindows.end());
+    WindowImpl *win = iter->second;
+    mNewlyCreatedWindows.erase(iter);
     win->resize(initial_pos.width(), initial_pos.height());
     if (mDelegate) {
         mDelegate->onCreatedWindow(this, win);
@@ -433,13 +518,18 @@ void WindowImpl::ShowCreatedWindow(int route_id,
 }
 void WindowImpl::ShowCreatedWidget(int route_id,
                                    const gfx::Rect& initial_pos) {
-    std::cout<<"Created widget!"<<std::endl;
-    RenderWidget* wid = new RenderWidget(this);
-    new MemoryRenderWidgetHost(this, wid, process(), host()->routing_id());
+    std::map<int, RenderWidget*>::iterator iter = mNewlyCreatedWidgets.find(route_id);
+    assert(iter != mNewlyCreatedWidgets.end());
+    RenderWidget *wid = iter->second;
+    appendWidget(wid);
+    mNewlyCreatedWidgets.erase(iter);
+
+    int thisZ = ++zIndex;
+
     wid->SetSize(gfx::Size(initial_pos.width(), initial_pos.height()));
-    //FIXME???//widHost->resize(initial_pos.width(), initial_pos.height());
+    wid->setPos(initial_pos.x(), initial_pos.y());
     if (mDelegate) {
-        mDelegate->onWidgetCreated(this, wid, ++zIndex);
+        mDelegate->onWidgetCreated(this, wid, thisZ);
         mDelegate->onWidgetResize(this, wid,
                                   initial_pos.width(), initial_pos.height());
         mDelegate->onWidgetMove(this, wid,

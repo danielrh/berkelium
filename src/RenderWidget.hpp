@@ -58,6 +58,9 @@ public:
     void keyEvent(bool pressed, int mods, int vk_code, int scancode);
 
     void setHost(RenderWidgetHost *host);
+    void setPos(int x, int y);
+
+    Rect getRect() const;
 
 public: /******* RenderWidgetHostView *******/
 
@@ -176,10 +179,7 @@ public: /******* RenderWidgetHostView *******/
 #endif
 
 private:
-
     uint32 mModifiers;
-    uint32 mWindowX;
-    uint32 mWindowY;
     int32 mMouseX;
     int32 mMouseY;
 

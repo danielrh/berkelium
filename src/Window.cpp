@@ -45,6 +45,19 @@ Window* Window::create(const Context &otherContext) {
     return new WindowImpl(&otherContext);
 }
 
+Widget *Window::getWidgetAtPoint(int xPos, int yPos, bool returnRootIfOutside) const {
+    FrontToBackIter iter = frontIter();
+    while (iter != frontEnd()) {
+        if ((*iter)->getRect().contains(xPos, yPos)) {
+            return *iter;
+        }
+        ++iter;
+    }
+    if (returnRootIfOutside) {
+        return getWidget();
+    }
+    return NULL;
+}
 
 Window::Window() {
     mContext=NULL;

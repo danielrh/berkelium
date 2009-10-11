@@ -56,11 +56,13 @@ class WindowImpl :
         public RenderViewHostDelegate::View
 {
 
-    void init(SiteInstance *);
+    void init(SiteInstance *, int routingId);
     NavigationEntry* CreateNavigationEntry(
         const GURL&url,
         const GURL&referrer,
         PageTransition::Type transition);
+
+    WindowImpl(const Context*otherContext, int routingId);
 
 public:
     WindowImpl *getImpl();
@@ -81,6 +83,14 @@ public:
     RenderViewHost *host() const;
 
     virtual Widget* getWidget() const;
+
+    virtual void focus();
+    virtual void unfocus();
+    virtual void mouseMoved(int xPos, int yPos);
+    virtual void mouseButton(unsigned int buttonID, bool down);
+    virtual void mouseWheel(int xScroll, int yScroll);
+    virtual void textEvent(std::wstring evt);
+    virtual void keyEvent(bool pressed, int mods, int vk_code, int scancode);
 
     virtual void refresh();
     virtual void cut();
@@ -193,9 +203,15 @@ private:
     GURL mCurrentURL;
     int zIndex;
 
+    int mMouseX;
+    int mMouseY;
+
     gfx::Rect mRect;
     NavigationEntry *mLastNavEntry;
     NavigationEntry *mNavEntry;
+
+    std::map<int, WindowImpl*> mNewlyCreatedWindows;
+    std::map<int, RenderWidget*> mNewlyCreatedWidgets;
 
     // Manages creation and swapping of render views.
     RenderViewHost *mRenderViewHost;

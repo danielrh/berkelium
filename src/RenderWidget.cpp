@@ -60,13 +60,27 @@ RenderWidget::RenderWidget(WindowImpl *winImpl) {
     mBacking = NULL;
     mWindow = winImpl;
 
-    mWindowX=mWindowY=0;
+    mMouseX=mMouseY=0;
     mModifiers=0;
 
 }
 
 void RenderWidget::setHost(RenderWidgetHost *host) {
     mHost = host;
+}
+
+void RenderWidget::setPos(int x, int y) {
+    mRect.set_x(x);
+    mRect.set_y(y);
+}
+
+Rect RenderWidget::getRect() const {
+    Rect ret;
+    ret.mLeft = mRect.x();
+    ret.mTop = mRect.y();
+    ret.mWidth = mRect.width();
+    ret.mHeight = mRect.height();
+    return ret;
 }
 
 RenderWidget::~RenderWidget() {
@@ -344,8 +358,8 @@ void RenderWidget::mouseMoved(int xPos, int yPos) {
     zeroWebEvent(event,mModifiers,WebKit::WebInputEvent::MouseMove);
 	event.x = xPos;
 	event.y = yPos;
-	event.globalX = xPos+mWindowX;
-	event.globalY = yPos+mWindowY;
+	event.globalX = xPos+mRect.x();
+	event.globalY = yPos+mRect.y();
     mMouseX=xPos;
     mMouseY=yPos;
 	event.button = WebKit::WebMouseEvent::ButtonNone;
@@ -359,8 +373,8 @@ void RenderWidget::mouseWheel(int scrollX, int scrollY) {
 	event.y = mMouseY;
 	event.windowX = mMouseX; // PRHFIXME: Window vs Global position?
 	event.windowY = mMouseY;
-	event.globalX = mWindowX+mMouseX;
-	event.globalY = mWindowY+mMouseY;
+	event.globalX = mMouseX+mRect.x();
+	event.globalY = mMouseY+mRect.y();
 	event.button = WebKit::WebMouseEvent::ButtonNone;
 	event.deltaX = scrollX; // PRHFIXME: want x and y scroll.
 	event.deltaY = scrollY;
@@ -368,7 +382,7 @@ void RenderWidget::mouseWheel(int scrollX, int scrollY) {
 	event.wheelTicksY = scrollY;
 	event.scrollByPage = false;
 
-    GetRenderWidgetHost()->ForwardMouseEvent(event);
+    GetRenderWidgetHost()->ForwardWheelEvent(event);
 }
 
 void RenderWidget::mouseButton(unsigned int mouseButton, bool down) {
@@ -407,8 +421,8 @@ void RenderWidget::mouseButton(unsigned int mouseButton, bool down) {
     }
 	event.x = mMouseX;
 	event.y = mMouseY;
-	event.globalX = mMouseX+mWindowX;
-	event.globalY = mMouseY+mWindowY;
+	event.globalX = mMouseX+mRect.x();
+	event.globalY = mMouseY+mRect.y();
     GetRenderWidgetHost()->ForwardMouseEvent(event);
 }
 

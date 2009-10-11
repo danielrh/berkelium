@@ -1,5 +1,5 @@
 /*  Berkelium - Embedded Chromium
- *  Widget.hpp
+ *  Rect.hpp
  *
  *  Copyright (c) 2009, Daniel Reiter Horn
  *  All rights reserved.
@@ -30,29 +30,43 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _BERKELIUM_WIDGET_HPP_
-#define _BERKELIUM_WIDGET_HPP_
-
-#include "berkelium/Rect.hpp"
+#ifndef _BERKELIUM_RECT_HPP_
+#define _BERKELIUM_RECT_HPP_
 
 namespace Berkelium {
 
-class BERKELIUM_EXPORT Widget {
-public:
-    virtual ~Widget() {}
+struct Rect {
+    int mTop;
+    int mLeft;
+    int mWidth;
+    int mHeight;
 
-    virtual void focus()=0;
-    virtual void unfocus()=0;
+    int top() const { return mTop; }
+    int left() const { return mLeft; }
+    int width() const { return mWidth; }
+    int height() const { return mHeight; }
+    int right() const { return mLeft + mWidth; }
+    int bottom() const { return mTop + mHeight; }
 
-    virtual void mouseMoved(int xPos, int yPos)=0;
-    virtual void mouseButton(unsigned int buttonID, bool down)=0;
-    virtual void mouseWheel(int xScroll, int yScroll)=0;
+    bool contains(int x, int y) const {
+        return (x >= left() && x < right() &&
+                y >= top() && y < bottom());
+    }
 
-    virtual void textEvent(std::wstring evt)=0;
-    virtual void keyEvent(bool pressed, int mods, int vk_code, int scancode)=0;
-
-    virtual Rect getRect() const=0;
-    virtual void setPos(int x, int y)=0;
+    Rect intersect(const Rect &rect) const {
+        int rx = std::max(left(), rect.left());
+        int ry = std::max(top(), rect.top());
+        int rr = std::min(right(), rect.right());
+        int rb = std::min(bottom(), rect.bottom());
+        if (rx >= rr || ry >= rb)
+            rx = ry = rr = rb = 0;  // non-intersecting
+        Rect ret;
+        ret.mLeft = rx;
+        ret.mTop = ry;
+        ret.mWidth = rr-rx;
+        ret.mHeight = rb-ry;
+        return ret;
+    }
 };
 
 }
