@@ -37,7 +37,17 @@ namespace Berkelium {
 
 class BERKELIUM_EXPORT Widget {
 public:
-    virtual ~Widget();
+    virtual ~Widget() {}
+
+    virtual void focus()=0;
+    virtual void unfocus()=0;
+
+    virtual void mouseMoved(int xPos, int yPos)=0;
+    virtual void mouseButton(unsigned int buttonID, bool down)=0;
+    virtual void mouseWheel(int xScroll, int yScroll)=0;
+
+    virtual void textEvent(std::wstring evt)=0;
+    virtual void keyEvent(bool pressed, int mods, int vk_code, int scancode)=0;
 
 };
 

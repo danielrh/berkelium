@@ -38,6 +38,15 @@
 #include <gtk/gtkwindow.h>
 #endif
 
+#ifdef _WIN32
+#include <windows.h> // for GetTickCount()
+#else
+#include <sys/time.h>
+#include <time.h>
+#endif
+
+
+
 #include "berkelium/Platform.hpp"
 #include "RenderWidget.hpp"
 #include "WindowImpl.hpp"
@@ -50,6 +59,10 @@ RenderWidget::RenderWidget(WindowImpl *winImpl) {
     mFocused = true;
     mBacking = NULL;
     mWindow = winImpl;
+
+    mWindowX=mWindowY=0;
+    mModifiers=0;
+
 }
 
 void RenderWidget::setHost(RenderWidgetHost *host) {
@@ -303,6 +316,165 @@ void RenderWidget::MovePluginWindows(
 }
 
 
+void RenderWidget::focus() {
+    mHost->Focus();
+}
+void RenderWidget::unfocus() {
+    mHost->Blur();
+}
+
+template<class T>
+void zeroWebEvent(T &event, int modifiers, WebKit::WebInputEvent::Type t) {
+    memset(&event,0,sizeof(T));
+    event.type=t;
+    event.size=sizeof(T);
+    event.modifiers=modifiers;
+#ifdef _WIN32
+    event.timeSTampSeconds=GetTickCount()/1000.0;
+#else
+    timeval tv;
+    gettimeofday(&tv,NULL);
+    event.timeStampSeconds=((double)tv.tv_usec)/1000000.0;
+    event.timeStampSeconds+=tv.tv_sec;
+#endif
+}
+
+void RenderWidget::mouseMoved(int xPos, int yPos) {
+    WebKit::WebMouseEvent event;
+    zeroWebEvent(event,mModifiers,WebKit::WebInputEvent::MouseMove);
+	event.x = xPos;
+	event.y = yPos;
+	event.globalX = xPos+mWindowX;
+	event.globalY = yPos+mWindowY;
+    mMouseX=xPos;
+    mMouseY=yPos;
+	event.button = WebKit::WebMouseEvent::ButtonNone;
+    GetRenderWidgetHost()->ForwardMouseEvent(event);
+}
+
+void RenderWidget::mouseWheel(int scrollX, int scrollY) {
+	WebKit::WebMouseWheelEvent event;
+	zeroWebEvent(event, mModifiers, WebKit::WebInputEvent::MouseWheel);
+	event.x = mMouseX;
+	event.y = mMouseY;
+	event.windowX = mMouseX; // PRHFIXME: Window vs Global position?
+	event.windowY = mMouseY;
+	event.globalX = mWindowX+mMouseX;
+	event.globalY = mWindowY+mMouseY;
+	event.button = WebKit::WebMouseEvent::ButtonNone;
+	event.deltaX = scrollX; // PRHFIXME: want x and y scroll.
+	event.deltaY = scrollY;
+	event.wheelTicksX = scrollX; // PRHFIXME: want x and y scroll.
+	event.wheelTicksY = scrollY;
+	event.scrollByPage = false;
+
+    GetRenderWidgetHost()->ForwardMouseEvent(event);
+}
+
+void RenderWidget::mouseButton(unsigned int mouseButton, bool down) {
+    unsigned int buttonChangeMask=0;
+    switch(mouseButton) {
+      case 0:
+        buttonChangeMask = WebKit::WebInputEvent::LeftButtonDown;
+        break;
+      case 1:
+        buttonChangeMask = WebKit::WebInputEvent::MiddleButtonDown;
+        break;
+      case 2:
+        buttonChangeMask = WebKit::WebInputEvent::RightButtonDown;
+        break;
+    }
+    if (down) {
+        mModifiers|=buttonChangeMask;
+    }else {
+        mModifiers&=(~buttonChangeMask);
+    }
+    WebKit::WebMouseEvent event;
+    zeroWebEvent(event,mModifiers,down?WebKit::WebInputEvent::MouseDown:WebKit::WebInputEvent::MouseUp);
+    switch(mouseButton) {
+      case 0:
+        event.button = WebKit::WebMouseEvent::ButtonLeft;
+        break;
+      case 1:
+        event.button = WebKit::WebMouseEvent::ButtonMiddle;
+        break;
+      case 2:
+        event.button = WebKit::WebMouseEvent::ButtonRight;
+        break;
+    }
+    if (down){
+        event.clickCount=1;
+    }
+	event.x = mMouseX;
+	event.y = mMouseY;
+	event.globalX = mMouseX+mWindowX;
+	event.globalY = mMouseY+mWindowY;
+    GetRenderWidgetHost()->ForwardMouseEvent(event);
+}
+
+void RenderWidget::keyEvent(bool pressed, int modifiers, int vk_code, int scancode){
+	NativeWebKeyboardEvent event;
+	zeroWebEvent(event, mModifiers, pressed?WebKit::WebInputEvent::RawKeyDown:WebKit::WebInputEvent::KeyUp);
+	event.windowsKeyCode = vk_code;
+	event.nativeKeyCode = scancode;
+	event.text[0]=0;
+	event.unmodifiedText[0]=0;
+	event.isSystemKey = (modifiers & Berkelium::SYSTEM_KEY)?true:false;
+
+	event.modifiers=0;
+	if (modifiers & Berkelium::ALT_MOD)
+		event.modifiers |= WebKit::WebInputEvent::AltKey;
+	if (modifiers & Berkelium::CONTROL_MOD)
+		event.modifiers |= WebKit::WebInputEvent::ControlKey;
+	if (modifiers & Berkelium::SHIFT_MOD)
+		event.modifiers |= WebKit::WebInputEvent::ShiftKey;
+	if (modifiers & Berkelium::META_MOD)
+		event.modifiers |= WebKit::WebInputEvent::MetaKey;
+	if (modifiers & Berkelium::KEYPAD_KEY)
+		event.modifiers |= WebKit::WebInputEvent::IsKeyPad;
+	if (modifiers & Berkelium::AUTOREPEAT_KEY)
+		event.modifiers |= WebKit::WebInputEvent::IsAutoRepeat;
+
+	event.setKeyIdentifierFromWindowsKeyCode();
+
+	GetRenderWidgetHost()->ForwardKeyboardEvent(event);
+
+	// keep track of persistent modifiers.
+    unsigned int test=(WebKit::WebInputEvent::LeftButtonDown|WebKit::WebInputEvent::MiddleButtonDown|WebKit::WebInputEvent::RightButtonDown);
+	mModifiers = ((mModifiers&test) |  (event.modifiers& (Berkelium::SHIFT_MOD|Berkelium::CONTROL_MOD|Berkelium::ALT_MOD|Berkelium::META_MOD)));    
+}
+
+
+void RenderWidget::textEvent(std::wstring text) {
+	// generate one of these events for each lengthCap chunks.
+	// 1 less because we need to null terminate.
+	const size_t lengthCap = WebKit::WebKeyboardEvent::textLengthCap-1;
+	NativeWebKeyboardEvent event;
+	zeroWebEvent(event,mModifiers, WebKit::WebInputEvent::Char);
+	event.isSystemKey = false;
+	event.windowsKeyCode = 0;
+	event.nativeKeyCode = 0;
+	event.keyIdentifier[0]=0;
+	size_t i;
+	while (text.size() > lengthCap) {
+
+	}
+	for (i = 0; i + lengthCap < text.size(); i+=lengthCap) {
+		memcpy(event.text, text.data()+i, lengthCap*sizeof(WebKit::WebUChar));
+		event.text[lengthCap]=0;
+		memcpy(event.unmodifiedText, text.data()+i, lengthCap*sizeof(WebKit::WebUChar));
+		event.unmodifiedText[lengthCap]=0;
+        GetRenderWidgetHost()->ForwardKeyboardEvent(event);
+	}
+	if (i < text.size()) {
+		assert(text.size()-i <= lengthCap);
+		memcpy(event.unmodifiedText, text.data()+i, (text.size()-i)*sizeof(WebKit::WebUChar));
+		memcpy(event.text, text.data()+i, (text.size()-i)*sizeof(WebKit::WebUChar));
+		event.text[text.size()-i]=0;
+		event.unmodifiedText[text.size()-i]=0;
+        GetRenderWidgetHost()->ForwardKeyboardEvent(event);
+	}
+}
 
 }
 

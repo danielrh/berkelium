@@ -38,6 +38,7 @@
 namespace Berkelium {
 
 class WindowImpl;
+class Widget;
 class WindowDelegate;
 
 struct Rect {
@@ -89,6 +90,8 @@ public:
     static Window* create(const Context&otherContext);
     virtual ~Window();
 
+    virtual Widget* getWidget() const; // could return NULL.
+
     inline Context *getContext() const {
         return mContext;
     }
@@ -102,8 +105,6 @@ public:
     virtual bool navigateTo(const std::string &url)=0;
     virtual void refresh()=0;
 
-    virtual void focus()=0;
-    virtual void unfocus()=0;
     virtual void cut()=0;
     virtual void copy()=0;
     virtual void paste()=0;
@@ -113,13 +114,6 @@ public:
     virtual void selectAll()=0;
 
     virtual WindowImpl*getImpl()=0;
-    
-    virtual void mouseMoved(int xPos, int yPos)=0;
-    virtual void mouseButton(unsigned int buttonID, bool down)=0;
-    virtual void mouseWheel(int xScroll, int yScroll)=0;
-
-    virtual void textEvent(std::wstring evt)=0;
-    virtual void keyEvent(bool pressed, int mods, int vk_code, int scancode)=0;
 protected:
     Context *mContext;
     WindowDelegate *mDelegate;

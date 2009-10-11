@@ -49,11 +49,6 @@
 #include "chrome/browser/renderer_host/render_view_host_factory.h"
 #include "chrome/browser/browser_url_handler.h"
 #include "chrome/common/native_web_keyboard_event.h"
-#ifndef _WIN32
-#include <sys/time.h>
-#include <time.h>
-#endif
-
 
 namespace Berkelium {
 //WindowImpl temp;
@@ -70,8 +65,6 @@ WindowImpl::WindowImpl(const Context*otherContext):Window(otherContext) {
     mCurrentURL = GURL("about:blank");
     mLastNavEntry = NULL;
     mNavEntry = NULL;
-    mWindowX=mWindowY=0;
-    mModifiers=0;
     zIndex = 0;
     init(mContext->getImpl()->getSiteInstance());
 }
@@ -118,16 +111,14 @@ void MakeNavigateParams(const NavigationEntry& entry, bool reload,
   params->request_time = base::Time::Now();
 }
 
+Widget *WindowImpl::getWidget() const {
+    return static_cast<RenderWidget*>(view());
+}
+
 void WindowImpl::resize(int width, int height) {
     SetContainerBounds(gfx::Rect(0, 0, width, height));
 }
 
-void WindowImpl::focus() {
-    if (host()) host()->Focus();
-}
-void WindowImpl::unfocus() {
-    if (host()) host()->Blur();
-}
 void WindowImpl::cut() {
     if (host()) host()->Cut();
 }
@@ -261,7 +252,7 @@ void WindowImpl::onPaint(Widget *wid,
 }
 
 void WindowImpl::onWidgetDestroyed(Widget *wid) {
-    if (wid != static_cast<RenderWidget*>(view())) {
+    if (wid != getWidget()) {
         mDelegate->onWidgetDestroyed(this, wid);
     }
 }
@@ -433,6 +424,7 @@ void WindowImpl::ShowCreatedWindow(int route_id,
                                    const gfx::Rect& initial_pos,
                                    bool user_gesture,
                                    const GURL& creator_url) {
+    std::cout<<"Created window!"<<std::endl;
     WindowImpl *win = new WindowImpl(getContext());
     win->resize(initial_pos.width(), initial_pos.height());
     if (mDelegate) {
@@ -441,6 +433,7 @@ void WindowImpl::ShowCreatedWindow(int route_id,
 }
 void WindowImpl::ShowCreatedWidget(int route_id,
                                    const gfx::Rect& initial_pos) {
+    std::cout<<"Created widget!"<<std::endl;
     RenderWidget* wid = new RenderWidget(this);
     new MemoryRenderWidgetHost(this, wid, process(), host()->routing_id());
     wid->SetSize(gfx::Size(initial_pos.width(), initial_pos.height()));
@@ -479,163 +472,6 @@ void WindowImpl::HandleMouseLeave() {
     // Useless: just calls this when we hand it an input event.
 }
 void WindowImpl::UpdatePreferredWidth(int pref_width) {
-}
-template<class T>
-void zeroWebEvent(T &event, int modifiers, WebKit::WebInputEvent::Type t) {
-    memset(&event,0,sizeof(T));
-    event.type=t;
-    event.size=sizeof(T);
-    event.modifiers=modifiers;
-#ifdef _WIN32
-    event.timeSTampSeconds=GetTickCount()/1000.0;
-#else
-    timeval tv;
-    gettimeofday(&tv,NULL);
-    event.timeStampSeconds=((double)tv.tv_usec)/1000000.0;
-    event.timeStampSeconds+=tv.tv_sec;
-#endif
-}
-
-void WindowImpl::mouseMoved(int xPos, int yPos) {
-    if (!view()) return;
-    WebKit::WebMouseEvent event;
-    zeroWebEvent(event,mModifiers,WebKit::WebInputEvent::MouseMove);
-	event.x = xPos;
-	event.y = yPos;
-	event.globalX = xPos+mWindowX;
-	event.globalY = yPos+mWindowY;
-    mMouseX=xPos;
-    mMouseY=yPos;
-	event.button = WebKit::WebMouseEvent::ButtonNone;
-    view()->GetRenderWidgetHost()->ForwardMouseEvent(event);
-}
-
-void WindowImpl::mouseWheel(int scrollX, int scrollY) {
-    if (!view()) return;
-	WebKit::WebMouseWheelEvent event;
-	zeroWebEvent(event, mModifiers, WebKit::WebInputEvent::MouseWheel);
-	event.x = mMouseX;
-	event.y = mMouseY;
-	event.windowX = mMouseX; // PRHFIXME: Window vs Global position?
-	event.windowY = mMouseY;
-	event.globalX = mWindowX+mMouseX;
-	event.globalY = mWindowY+mMouseY;
-	event.button = WebKit::WebMouseEvent::ButtonNone;
-	event.deltaX = scrollX; // PRHFIXME: want x and y scroll.
-	event.deltaY = scrollY;
-	event.wheelTicksX = scrollX; // PRHFIXME: want x and y scroll.
-	event.wheelTicksY = scrollY;
-	event.scrollByPage = false;
-
-    view()->GetRenderWidgetHost()->ForwardMouseEvent(event);
-}
-
-void WindowImpl::mouseButton(unsigned int mouseButton, bool down) {
-    if (!view()) return;
-    unsigned int buttonChangeMask=0;
-    switch(mouseButton) {
-      case 0:
-        buttonChangeMask = WebKit::WebInputEvent::LeftButtonDown;
-        break;
-      case 1:
-        buttonChangeMask = WebKit::WebInputEvent::MiddleButtonDown;
-        break;
-      case 2:
-        buttonChangeMask = WebKit::WebInputEvent::RightButtonDown;
-        break;
-    }
-    if (down) {
-        mModifiers|=buttonChangeMask;
-    }else {
-        mModifiers&=(~buttonChangeMask);
-    }
-    WebKit::WebMouseEvent event;
-    zeroWebEvent(event,mModifiers,down?WebKit::WebInputEvent::MouseDown:WebKit::WebInputEvent::MouseUp);
-    switch(mouseButton) {
-      case 0:
-        event.button = WebKit::WebMouseEvent::ButtonLeft;
-        break;
-      case 1:
-        event.button = WebKit::WebMouseEvent::ButtonMiddle;
-        break;
-      case 2:
-        event.button = WebKit::WebMouseEvent::ButtonRight;
-        break;
-    }
-    if (down){
-        event.clickCount=1;
-    }
-	event.x = mMouseX;
-	event.y = mMouseY;
-	event.globalX = mMouseX+mWindowX;
-	event.globalY = mMouseY+mWindowY;
-    view()->GetRenderWidgetHost()->ForwardMouseEvent(event);
-}
-
-void WindowImpl::keyEvent(bool pressed, int modifiers, int vk_code, int scancode){
-	if (!view()) return;
-	NativeWebKeyboardEvent event;
-	zeroWebEvent(event, mModifiers, pressed?WebKit::WebInputEvent::RawKeyDown:WebKit::WebInputEvent::KeyUp);
-	event.windowsKeyCode = vk_code;
-	event.nativeKeyCode = scancode;
-	event.text[0]=0;
-	event.unmodifiedText[0]=0;
-	event.isSystemKey = (modifiers & Berkelium::SYSTEM_KEY)?true:false;
-
-	event.modifiers=0;
-	if (modifiers & Berkelium::ALT_MOD)
-		event.modifiers |= WebKit::WebInputEvent::AltKey;
-	if (modifiers & Berkelium::CONTROL_MOD)
-		event.modifiers |= WebKit::WebInputEvent::ControlKey;
-	if (modifiers & Berkelium::SHIFT_MOD)
-		event.modifiers |= WebKit::WebInputEvent::ShiftKey;
-	if (modifiers & Berkelium::META_MOD)
-		event.modifiers |= WebKit::WebInputEvent::MetaKey;
-	if (modifiers & Berkelium::KEYPAD_KEY)
-		event.modifiers |= WebKit::WebInputEvent::IsKeyPad;
-	if (modifiers & Berkelium::AUTOREPEAT_KEY)
-		event.modifiers |= WebKit::WebInputEvent::IsAutoRepeat;
-
-	event.setKeyIdentifierFromWindowsKeyCode();
-
-	view()->GetRenderWidgetHost()->ForwardKeyboardEvent(event);
-
-	// keep track of persistent modifiers.
-    unsigned int test=(WebKit::WebInputEvent::LeftButtonDown|WebKit::WebInputEvent::MiddleButtonDown|WebKit::WebInputEvent::RightButtonDown);
-	mModifiers = ((mModifiers&test) |  (event.modifiers& (Berkelium::SHIFT_MOD|Berkelium::CONTROL_MOD|Berkelium::ALT_MOD|Berkelium::META_MOD)));    
-}
-
-
-void WindowImpl::textEvent(std::wstring text) {
-	if (!view()) return;
-	// generate one of these events for each lengthCap chunks.
-	// 1 less because we need to null terminate.
-	const size_t lengthCap = WebKit::WebKeyboardEvent::textLengthCap-1;
-	NativeWebKeyboardEvent event;
-	zeroWebEvent(event,mModifiers, WebKit::WebInputEvent::Char);
-	event.isSystemKey = false;
-	event.windowsKeyCode = 0;
-	event.nativeKeyCode = 0;
-	event.keyIdentifier[0]=0;
-	size_t i;
-	while (text.size() > lengthCap) {
-
-	}
-	for (i = 0; i + lengthCap < text.size(); i+=lengthCap) {
-		memcpy(event.text, text.data()+i, lengthCap*sizeof(WebKit::WebUChar));
-		event.text[lengthCap]=0;
-		memcpy(event.unmodifiedText, text.data()+i, lengthCap*sizeof(WebKit::WebUChar));
-		event.unmodifiedText[lengthCap]=0;
-        view()->GetRenderWidgetHost()->ForwardKeyboardEvent(event);
-	}
-	if (i < text.size()) {
-		assert(text.size()-i <= lengthCap);
-		memcpy(event.unmodifiedText, text.data()+i, (text.size()-i)*sizeof(WebKit::WebUChar));
-		memcpy(event.text, text.data()+i, (text.size()-i)*sizeof(WebKit::WebUChar));
-		event.text[text.size()-i]=0;
-		event.unmodifiedText[text.size()-i]=0;
-        view()->GetRenderWidgetHost()->ForwardKeyboardEvent(event);
-	}
 }
 
 }

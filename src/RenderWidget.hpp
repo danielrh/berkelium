@@ -49,6 +49,14 @@ public:
     RenderWidget(WindowImpl *winImpl);
     ~RenderWidget();
 
+    void focus();
+    void unfocus();
+    void mouseMoved(int xPos, int yPos);
+    void mouseButton(uint32 buttonID, bool down);
+    void mouseWheel(int xScroll, int yScroll);
+    void textEvent(std::wstring evt);
+    void keyEvent(bool pressed, int mods, int vk_code, int scancode);
+
     void setHost(RenderWidgetHost *host);
 
 public: /******* RenderWidgetHostView *******/
@@ -168,6 +176,13 @@ public: /******* RenderWidgetHostView *******/
 #endif
 
 private:
+
+    uint32 mModifiers;
+    uint32 mWindowX;
+    uint32 mWindowY;
+    int32 mMouseX;
+    int32 mMouseY;
+
     RenderWidgetHost *mHost;
     bool mFocused;
     BackingStore* mBacking;

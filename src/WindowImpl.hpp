@@ -56,11 +56,6 @@ class WindowImpl :
         public RenderViewHostDelegate::View
 {
 
-    uint32 mModifiers;
-    uint32 mWindowX;
-    uint32 mWindowY;
-    int32 mMouseX;
-    int32 mMouseY;
     void init(SiteInstance *);
     NavigationEntry* CreateNavigationEntry(
         const GURL&url,
@@ -85,9 +80,9 @@ public:
     RenderWidgetHostView *view() const;
     RenderViewHost *host() const;
 
+    virtual Widget* getWidget() const;
+
     virtual void refresh();
-    virtual void focus();
-    virtual void unfocus();
     virtual void cut();
     virtual void copy();
     virtual void paste();
@@ -103,13 +98,6 @@ public:
 
     void SetContainerBounds(const gfx::Rect &rc);
     void resize(int width, int height);
-
-    void mouseMoved(int xPos, int yPos);
-    void mouseButton(uint32 buttonID, bool down);
-    void mouseWheel(int xScroll, int yScroll);
-
-    void textEvent(std::wstring evt);
-    void keyEvent(bool pressed, int mods, int vk_code, int scancode);
 
     void onPaint(Widget *wid,
                  const unsigned char *sourceBuffer, const Rect &rect,
