@@ -50,7 +50,7 @@ MemoryRenderViewHost::MemoryRenderViewHost(
         SiteInstance* instance,
         RenderViewHostDelegate* delegate,
         int routing_id)
-    : MemoryRenderHostImpl<RenderViewHost>(instance, delegate, routing_id, modal_dialog_event) {
+    : MemoryRenderHostImpl<RenderViewHost>(instance, delegate, routing_id) {
 
     mWindow = static_cast<WindowImpl*>(delegate);
     mWidget = NULL;

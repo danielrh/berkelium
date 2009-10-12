@@ -60,6 +60,7 @@ template <class RenderXHost> class MemoryRenderHostImpl: public RenderXHost {
     void init();
 protected:
     template<class A, class B, class C, class D> MemoryRenderHostImpl(A a, B b, C c, D d):RenderXHost(a,b,c,d) {init();}
+    template<class A, class B, class C> MemoryRenderHostImpl(A a, B b, C c):RenderXHost(a,b,c) {init();}
     template<class A, class B> MemoryRenderHostImpl(A a, B b):RenderXHost(a,b) {   init();}
     ~MemoryRenderHostImpl() {}
 

@@ -53,7 +53,7 @@ PLAT=mac
 PLATCFLAGS=-pthread
 SNOW=
 
-PLATLDFLAGS=-dynamiclib -pthread $(CHROMIUMDIR)/src/third_party/WebKit/WebKitLibraries/libWebKitSystemInterface$(SNOW)Leopard.a -framework CoreAudio -framework AudioToolbox -framework Cocoa -framework QuartzCore -framework Security -framework SecurityInterface -framework SystemConfiguration -ObjC -framework Carbon chromium/src/xcodebuild/chrome.build/$(CHROMIUMMODE)/chrome_dll.build/Objects-normal/i386/keystone_glue.o
+PLATLDFLAGS=-dynamiclib -pthread $(CHROMIUMDIR)/src/third_party/WebKit/WebKitLibraries/libWebKitSystemInterface$(SNOW)Leopard.a -framework CoreAudio -framework AudioToolbox -framework Cocoa -framework QuartzCore -framework Security -framework SecurityInterface -framework SystemConfiguration -ObjC -framework Carbon chromium/src/xcodebuild/chrome.build/$(CHROMIUMMODE)/chrome_dll.build/Objects-normal/i386/keystone_glue.o -framework OpenGL -framework JavaScriptCore
 START_GROUP=
 END_GROUP=
 DLLEXT=dylib
@@ -115,7 +115,7 @@ endif
 CHROMIUMLDFLAGS=-L$(CHROMIUMLIBPATH)
 TPLIBS=-levent -lxslt -ljpeg -lpng -lz -lxml2 -lbz2 -lsqlite
 endif
-CHROMIUMLIBS=$(CHROMIUMLDFLAGS) $(TPLIBS)  -ldl -lm -lcommon -lbrowser -ldebugger -lrenderer -lutility -lprinting -lapp_base -lbase -licui18n -licuuc -licudata -lbase_gfx -lskia -lnet -lgoogleurl -lsdch -lmodp_b64 -lv8_snapshot -lv8_base -lglue -lwebcore -lpcre -lwtf -lwebkit -lmedia -lffmpeg -lhunspell -lplugin -l appcache -lipc -lworker -ldatabase
+CHROMIUMLIBS=$(CHROMIUMLDFLAGS) $(TPLIBS)  -ldl -lm -lcommon -lbrowser -ldebugger -lrenderer -lutility -lprinting -lapp_base -lbase -licui18n -licuuc -licudata -lbase_gfx -lskia -lnet -lgoogleurl -lsdch -lmodp_b64 -lv8_snapshot -lv8_base -lglue -lwebcore -lpcre -lwtf -lwebkit -lmedia -lffmpeg -lhunspell -lplugin -l appcache -lipc -lworker -ldatabase -lcommon_constants -lnpGoogleNaClPluginChrome -lnonnacl_srpc -llibgoogle_nacl_imc_c -lplatform -lsel -lsel_ldr_launcher -lnonnacl_util_chrome -lnrd_xfer -lgio -lexpiration
 # Flags that affect both compiling and linking
 CLIBFLAGS=$(ARCHFLAGS) -fvisibility=hidden -fvisibility-inlines-hidden -fPIC -pthread -Wall -fno-rtti
 
