@@ -491,14 +491,15 @@ void WindowImpl::DocumentLoadedInFrame() {
 /******* RenderViewHostDelegate::View *******/
 void WindowImpl::CreateNewWindow(int route_id,
                                  base::WaitableEvent* modal_dialog_event) {
-    std::cout<<"Created window!"<<std::endl;
+    std::cout<<"Created window "<<route_id<<std::endl;
     mNewlyCreatedWindows.insert(
         std::pair<int, WindowImpl*>(route_id, new WindowImpl(getContext(), route_id)));
 }
 void WindowImpl::CreateNewWidget(int route_id, bool activatable) {
-    std::cout<<"Created widget!"<<std::endl;
+    std::cout<<"Created widget "<<route_id<<std::endl;
     RenderWidget* wid = new RenderWidget(this);
     new MemoryRenderWidgetHost(this, wid, process(), route_id);
+    wid->set_activatable(activatable);
     mNewlyCreatedWidgets.insert(
         std::pair<int, RenderWidget*>(route_id, wid));
 }
@@ -507,24 +508,46 @@ void WindowImpl::ShowCreatedWindow(int route_id,
                                    const gfx::Rect& initial_pos,
                                    bool user_gesture,
                                    const GURL& creator_url) {
+    std::cout<<"Show Created window "<<route_id<<std::endl;
     std::map<int, WindowImpl*>::iterator iter = mNewlyCreatedWindows.find(route_id);
     assert(iter != mNewlyCreatedWindows.end());
-    WindowImpl *win = iter->second;
+    WindowImpl *newwin = iter->second;
     mNewlyCreatedWindows.erase(iter);
-    win->resize(initial_pos.width(), initial_pos.height());
+    newwin->host()->Init();
+
+    newwin->resize(initial_pos.width(), initial_pos.height());
+
+    if (!newwin->process()->HasConnection()) {
+        // The view has gone away or the renderer crashed. Nothing to do.
+        // Fixme: memory leak?
+        std::cout<<"Show window process fail "<<route_id<<std::endl;
+        return;
+    }
+
     if (mDelegate) {
-        mDelegate->onCreatedWindow(this, win);
+        mDelegate->onCreatedWindow(this, newwin);
     }
 }
 void WindowImpl::ShowCreatedWidget(int route_id,
                                    const gfx::Rect& initial_pos) {
+    std::cout<<"Show Created widget "<<route_id<<std::endl;
     std::map<int, RenderWidget*>::iterator iter = mNewlyCreatedWidgets.find(route_id);
     assert(iter != mNewlyCreatedWidgets.end());
     RenderWidget *wid = iter->second;
     appendWidget(wid);
     mNewlyCreatedWidgets.erase(iter);
 
+    if (!wid->GetRenderWidgetHost()->process()->HasConnection()) {
+        // The view has gone away or the renderer crashed. Nothing to do.
+        // Fixme: memory leak?
+        std::cout<<"Show widget process fail "<<route_id<<std::endl;
+        return;
+    }
+
     int thisZ = ++zIndex;
+
+    wid->InitAsPopup(view(), initial_pos);
+    wid->GetRenderWidgetHost()->Init();
 
     wid->SetSize(gfx::Size(initial_pos.width(), initial_pos.height()));
     wid->setPos(initial_pos.x(), initial_pos.y());
