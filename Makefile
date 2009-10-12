@@ -144,7 +144,7 @@ all: $(TARGET) berkelium ppmrender
 
 $(TARGET): $(OBJS)
 	mkdir -p $(EXEDIR)
-	g++ $(OBJS) $(LIBS) -o $@.tmp && mv $@.tmp $@
+	g++ $(OBJS) $(LIBS) -o $@
 
 #src/%.cpp $(HEADERS)
 $(OBJDIR)/%.o: src/%.cpp
