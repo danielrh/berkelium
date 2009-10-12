@@ -57,13 +57,13 @@ class MemoryRenderHostBase {
 };
 
 template <class RenderXHost> class MemoryRenderHostImpl: public RenderXHost {
+    void init();
 protected:
-    template<class A, class B, class C, class D> MemoryRenderHostImpl(A a, B b, C c, D d):RenderXHost(a,b,c,d) {}
-    template<class A, class B> MemoryRenderHostImpl(A a, B b):RenderXHost(a,b) {}
+    template<class A, class B, class C, class D> MemoryRenderHostImpl(A a, B b, C c, D d):RenderXHost(a,b,c,d) {init();}
+    template<class A, class B> MemoryRenderHostImpl(A a, B b):RenderXHost(a,b) {   init();}
     ~MemoryRenderHostImpl() {}
 
 public:
-
     void Memory_WasResized();
     void Memory_OnMsgScrollRect(const ViewHostMsg_ScrollRect_Params&params);
     void Memory_OnMsgPaintRect(const ViewHostMsg_PaintRect_Params&params);
@@ -90,6 +90,9 @@ public:
         int routing_id);
     ~MemoryRenderWidgetHost();
     virtual void OnMessageReceived(const IPC::Message& msg);
+    virtual void Memory_OnMsgPaintRect(const ViewHostMsg_PaintRect_Params&params);
+    virtual void Memory_OnMsgScrollRect(const ViewHostMsg_ScrollRect_Params&params);
+
 };
 
 class MemoryRenderViewHost : public MemoryRenderHostImpl <RenderViewHost> {
@@ -100,6 +103,7 @@ public:
         int routing_id,
         base::WaitableEvent* modal_dialog_event);
     ~MemoryRenderViewHost();
+
     virtual void OnMessageReceived(const IPC::Message& msg);
 };
 

@@ -55,7 +55,6 @@ MemoryRenderViewHost::MemoryRenderViewHost(
 
     mWindow = static_cast<WindowImpl*>(delegate);
     mWidget = NULL;
-    mResizeAckPending=true;
 }
 
 MemoryRenderViewHost::~MemoryRenderViewHost() {
@@ -100,9 +99,9 @@ MemoryRenderWidgetHost::~MemoryRenderWidgetHost() {
 void MemoryRenderWidgetHost::OnMessageReceived(const IPC::Message& msg) {
   bool msg_is_ok = true;
   IPC_BEGIN_MESSAGE_MAP_EX(MemoryRenderWidgetHost, msg, msg_is_ok)
-    IPC_MESSAGE_HANDLER(ViewHostMsg_ScrollRect, Memory_OnMsgScrollRect)
-    IPC_MESSAGE_HANDLER(ViewHostMsg_PaintRect, Memory_OnMsgPaintRect)
-    IPC_MESSAGE_UNHANDLED(this->RenderWidgetHost::OnMessageReceived(msg))
+      IPC_MESSAGE_HANDLER(ViewHostMsg_ScrollRect, MemoryRenderWidgetHost::Memory_OnMsgScrollRect)
+      IPC_MESSAGE_HANDLER(ViewHostMsg_PaintRect, MemoryRenderWidgetHost::Memory_OnMsgPaintRect)
+      IPC_MESSAGE_UNHANDLED(this->RenderWidgetHost::OnMessageReceived(msg))
   IPC_END_MESSAGE_MAP_EX()
       ;
 
@@ -119,6 +118,12 @@ void MemoryRenderWidgetHost::OnMessageReceived(const IPC::Message& msg) {
 
 ///////// MemoryRenderHostImpl common functions /////////
 
+void MemoryRenderWidgetHost::Memory_OnMsgScrollRect(const ViewHostMsg_ScrollRect_Params&params){
+    this->MemoryRenderHostImpl<RenderWidgetHost>::Memory_OnMsgScrollRect(params);    
+}
+void MemoryRenderWidgetHost::Memory_OnMsgPaintRect(const ViewHostMsg_PaintRect_Params&params){
+    this->MemoryRenderHostImpl<RenderWidgetHost>::Memory_OnMsgPaintRect(params);
+}
 template <class T> void MemoryRenderHostImpl<T>::Memory_OnMsgScrollRect(
     const ViewHostMsg_ScrollRect_Params& params) {
 
@@ -154,6 +159,11 @@ template <class T> void MemoryRenderHostImpl<T>::Memory_OnMsgScrollRect(
     //PRIV//view_being_painted_ = false;
   }
 
+}
+template <class T> void MemoryRenderHostImpl<T>::init() {
+    mResizeAckPending=true;
+    mWidget=NULL;
+    
 }
 template <class T> void MemoryRenderHostImpl<T>::Memory_WasResized() {
     if (this->mResizeAckPending || !this->process()->HasConnection() || !this->view() || !this->renderer_initialized_) {
@@ -203,7 +213,7 @@ template <class T> void MemoryRenderHostImpl<T>::Memory_OnMsgPaintRect(
         //PRIV//in_flight_size_.SetSize(0, 0);
     }
 
-    bool is_repaint_ack =
+//    bool is_repaint_ack =
         ViewHostMsg_PaintRect_Flags::is_repaint_ack(params.flags);
 
 

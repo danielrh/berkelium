@@ -498,7 +498,7 @@ void WindowImpl::CreateNewWindow(int route_id,
 void WindowImpl::CreateNewWidget(int route_id, bool activatable) {
     std::cout<<"Created widget "<<route_id<<std::endl;
     RenderWidget* wid = new RenderWidget(this);
-    new MemoryRenderWidgetHost(this, wid, process(), route_id);
+    wid->setHost(new MemoryRenderWidgetHost(this, wid, process(), route_id));
     wid->set_activatable(activatable);
     mNewlyCreatedWidgets.insert(
         std::pair<int, RenderWidget*>(route_id, wid));
