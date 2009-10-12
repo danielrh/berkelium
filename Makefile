@@ -61,7 +61,7 @@ DLLEXT=dylib
 else
 PLAT=linux
 PLATCFLAGS=`pkg-config --cflags gtk+-2.0 glib-2.0 gio-unix-2.0`
-PLATLDFLAGS=`pkg-config --libs gtk+-2.0 glib-2.0 gio-unix-2.0 gconf-2.0` -lssl3 -lnss3 -lnssutil3 -lsmime3 -lplds4 -lplc4 -lnspr4 -lpthread -lgdk-x11-2.0 -lgdk_pixbuf-2.0 -llinux_versioninfo -lpangocairo-1.0 -lgio-2.0 -lpango-1.0 -lcairo -lgobject-2.0 -lgmodule-2.0 -lglib-2.0 -lfontconfig -lfreetype -lrt -lgconf-2 -lglib-2.0 -lX11 -lasound -lharfbuzz -lharfbuzz_interface -lsandbox
+PLATLDFLAGS=`pkg-config --libs gtk+-2.0 glib-2.0 gio-unix-2.0 gconf-2.0` -lssl3 -lnss3 -lnssutil3 -lsmime3 -lplds4 -lplc4 -lnspr4 -lpthread -lgdk-x11-2.0 -lgdk_pixbuf-2.0 -llinux_versioninfo -lpangocairo-1.0 -lgio-2.0 -lpango-1.0 -lcairo -lgobject-2.0 -lgmodule-2.0 -lglib-2.0 -lfontconfig -lfreetype -lrt -lgconf-2 -lglib-2.0 -lX11 -lasound -lharfbuzz -lharfbuzz_interface -lsandbox -ldatabase
 START_GROUP=-Wl,--start-group
 END_GROUP=-Wl,--end-group
 DLLEXT=so
@@ -144,12 +144,12 @@ all: $(TARGET) berkelium ppmrender
 
 $(TARGET): $(OBJS)
 	mkdir -p $(EXEDIR)
-	g++ $(OBJS) $(LIBS) -o $@
+	g++ $(OBJS) $(LIBS) -o $@.tmp && mv $@.tmp $@
 
 #src/%.cpp $(HEADERS)
 $(OBJDIR)/%.o: src/%.cpp
 	@mkdir -p $(OBJDIR)||true
-	g++ $(CFLAGS) -DBERKELIUM_BUILD -c $< -o $@
+	g++ $(CFLAGS) -DBERKELIUM_BUILD -c $< -o $@.tmp && mv $@.tmp $@
 
 $(EXEDIR)/plugin_carbon_interpose.dylib: $(OBJDIR)/plugin_carbon_interpose.o
 	@mkdir -p $(EXEDIR)||true
