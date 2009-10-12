@@ -421,6 +421,8 @@ void RenderWidget::mouseButton(unsigned int mouseButton, bool down) {
     }
 	event.x = mMouseX;
 	event.y = mMouseY;
+	event.windowX = mMouseX;
+	event.windowY = mMouseY;
 	event.globalX = mMouseX+mRect.x();
 	event.globalY = mMouseY+mRect.y();
     GetRenderWidgetHost()->ForwardMouseEvent(event);

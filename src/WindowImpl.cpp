@@ -150,7 +150,7 @@ void WindowImpl::unfocus() {
 void WindowImpl::mouseMoved(int xPos, int yPos) {
     mMouseX = xPos;
     mMouseY = yPos;
-    for (BackToFrontIter iter = backIter(); iter != backEnd(); ++iter) {
+    for (FrontToBackIter iter = frontIter(); iter != frontEnd(); ++iter) {
         Rect r = (*iter)->getRect();
         (*iter)->mouseMoved(xPos - r.left(), yPos - r.top());
     }
@@ -160,17 +160,11 @@ void WindowImpl::mouseButton(unsigned int buttonID, bool down) {
     if (iter != frontEnd()) {
         (*iter)->mouseButton(buttonID, down);
     }
-/*
-    Widget *wid = getWidgetAtPoint(root->mMouseX, root->mMouseY, true);
-    if (wid) {
-        wid->mouseButton(buttonID, down);
-    }
-*/
 }
 void WindowImpl::mouseWheel(int xScroll, int yScroll) {
-    FrontToBackIter iter = frontIter();
-    if (iter != frontEnd()) {
-        (*iter)->mouseWheel(xScroll, yScroll);
+    Widget *wid = getWidgetAtPoint(mMouseX, mMouseY, true);
+    if (wid) {
+        wid->mouseButton(xScroll, yScroll);
     }
 }
 
