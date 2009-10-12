@@ -109,6 +109,8 @@ public:
 
     Widget *getWidgetAtPoint(int xPos, int yPos, bool returnRootIfOutside=false) const;
 
+    virtual void setTransparent(bool istrans)=0;
+
     virtual void focus()=0;
     virtual void unfocus()=0;
 

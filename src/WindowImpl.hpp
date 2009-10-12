@@ -84,6 +84,8 @@ public:
 
     virtual Widget* getWidget() const;
 
+    virtual void setTransparent(bool istrans);
+
     virtual void focus();
     virtual void unfocus();
     virtual void mouseMoved(int xPos, int yPos);

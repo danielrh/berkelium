@@ -55,6 +55,12 @@ public:
         std::cout << "*** Start loading "<<newURL<<" from "<<mURL<<std::endl;
     }
     virtual void onLoad(Window *win) {
+        sleep(1);
+        win->resize(1280,1024);
+        win->resize(500,400);
+        win->resize(600,500);
+        win->resize(1024,768);
+/*
         sleep(3);
         std::cout << "*** onLoad "<<mURL<<std::endl;
         if (mURL.find("yahoo") != std::string::npos) {
@@ -67,6 +73,7 @@ public:
         if (mURL.find("yahoo") == std::string::npos) {
             win->navigateTo("http://yahoo.com");
         }
+*/
     }
     virtual void onLoadError(Window *win, const std::string &error) {
         std::cout << "*** onLoadError "<<mURL<<": "<<error<<std::endl;
@@ -160,7 +167,8 @@ int main () {
     Window* win=Window::create();
     win->resize(800,600);
     win->setDelegate(new TestDelegate);
-    win->navigateTo("http://xkcd.com");
+    win->navigateTo("http://dunnbypaul.net/js_mouse/");
+    win->setTransparent(true);
     //win->navigateTo("http://google.com");
 
 /*

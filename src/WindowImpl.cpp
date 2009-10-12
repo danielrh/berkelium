@@ -110,7 +110,6 @@ ViewType::Type WindowImpl::GetRenderViewType()const {
     return ViewType::TAB_CONTENTS;
 }
 
-
 void MakeNavigateParams(const NavigationEntry& entry, bool reload,
                         ViewMsg_Navigate_Params* params) {
   params->page_id = entry.page_id();
@@ -126,6 +125,16 @@ Widget *WindowImpl::getWidget() const {
     return static_cast<RenderWidget*>(view());
 }
 
+
+void WindowImpl::setTransparent(bool istrans) {
+    SkBitmap bg;
+    int bitmap = 0;
+    if (istrans) {
+        bg.setConfig(SkBitmap::kA1_Config, 1, 1);
+        bg.setPixels(&bitmap);
+    }
+    host()->Send(new ViewMsg_SetBackground(host()->routing_id(),bg));
+}
 
 void WindowImpl::focus() {
     FrontToBackIter iter = frontIter();
