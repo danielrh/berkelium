@@ -61,7 +61,7 @@ DLLEXT=dylib
 else
 PLAT=linux
 PLATCFLAGS=`pkg-config --cflags gtk+-2.0 glib-2.0 gio-unix-2.0`
-PLATLDFLAGS=`pkg-config --libs gtk+-2.0 glib-2.0 gio-unix-2.0 gconf-2.0` -lssl3 -lnss3 -lnssutil3 -lsmime3 -lplds4 -lplc4 -lnspr4 -lpthread -lgdk-x11-2.0 -lgdk_pixbuf-2.0 -llinux_versioninfo -lpangocairo-1.0 -lgio-2.0 -lpango-1.0 -lcairo -lgobject-2.0 -lgmodule-2.0 -lglib-2.0 -lfontconfig -lfreetype -lrt -lgconf-2 -lglib-2.0 -lX11 -lasound -lharfbuzz -lharfbuzz_interface -lsandbox -ldatabase
+PLATLDFLAGS=`pkg-config --libs gtk+-2.0 glib-2.0 gio-unix-2.0 gconf-2.0` -lssl3 -lnss3 -lnssutil3 -lsmime3 -lplds4 -lplc4 -lnspr4 -lpthread -lgdk-x11-2.0 -lgdk_pixbuf-2.0 -llinux_versioninfo -lpangocairo-1.0 -lgio-2.0 -lpango-1.0 -lcairo -lgobject-2.0 -lgmodule-2.0 -lglib-2.0 -lfontconfig -lfreetype -lrt -lgconf-2 -lglib-2.0 -lX11 -lasound -lharfbuzz -lharfbuzz_interface -lsandbox
 START_GROUP=-Wl,--start-group
 END_GROUP=-Wl,--end-group
 DLLEXT=so
@@ -115,7 +115,7 @@ endif
 CHROMIUMLDFLAGS=-L$(CHROMIUMLIBPATH)
 TPLIBS=-levent -lxslt -ljpeg -lpng -lz -lxml2 -lbz2 -lsqlite
 endif
-CHROMIUMLIBS=$(CHROMIUMLDFLAGS) $(TPLIBS)  -ldl -lm -lcommon -lbrowser -ldebugger -lrenderer -lutility -lprinting -lapp_base -lbase -licui18n -licuuc -licudata -lbase_gfx -lskia -lnet -lgoogleurl -lsdch -lmodp_b64 -lv8_snapshot -lv8_base -lglue -lwebcore -lpcre -lwtf -lwebkit -lmedia -lffmpeg -lhunspell -lplugin -l appcache -lipc -lworker
+CHROMIUMLIBS=$(CHROMIUMLDFLAGS) $(TPLIBS)  -ldl -lm -lcommon -lbrowser -ldebugger -lrenderer -lutility -lprinting -lapp_base -lbase -licui18n -licuuc -licudata -lbase_gfx -lskia -lnet -lgoogleurl -lsdch -lmodp_b64 -lv8_snapshot -lv8_base -lglue -lwebcore -lpcre -lwtf -lwebkit -lmedia -lffmpeg -lhunspell -lplugin -l appcache -lipc -lworker -ldatabase
 # Flags that affect both compiling and linking
 CLIBFLAGS=$(ARCHFLAGS) -fvisibility=hidden -fvisibility-inlines-hidden -fPIC -pthread -Wall -fno-rtti
 
