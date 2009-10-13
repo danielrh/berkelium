@@ -41,7 +41,7 @@
 #include "base/path_service.h"
 #include "base/thread.h"
 #include "base/command_line.h"
-#include "base/icu_util.h"
+#include "base/i18n/icu_util.h"
 #include "net/base/cookie_monster.h"
 #include "chrome/common/chrome_paths.h"
 #include "chrome/browser/browser_prefs.h"

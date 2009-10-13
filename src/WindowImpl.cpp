@@ -49,7 +49,7 @@
 #include "chrome/browser/renderer_host/render_view_host_factory.h"
 #include "chrome/browser/browser_url_handler.h"
 #include "chrome/common/native_web_keyboard_event.h"
-
+#include "chrome/browser/renderer_host/render_process_host.h"
 namespace Berkelium {
 //WindowImpl temp;
 void WindowImpl::init(SiteInstance*site, int routing_id) {

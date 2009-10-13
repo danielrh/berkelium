@@ -83,7 +83,7 @@ endif
 LIBDIRS=. app base ipc chrome net media webkit sandbox skia printing v8/tools/gyp sdch build/temp_gyp native_client/src/trusted/plugin/ native_client/src/shared/srpc native_client/src/shared/imc native_client/src/shared/platform native_client/src/trusted/nonnacl_util native_client/src/trusted/nonnacl_util/linux native_client/src/trusted/service_runtime/  native_client/src/trusted/desc/ 
 THIRDPARTYLIBDIRS=bzip2 ffmpeg harfbuzz hunspell icu libevent libjpeg libpng libxml libxslt lzma_sdk modp_b64 sqlite zlib WebKit/JavaScriptCore/JavaScriptCore.gyp WebKit/WebCore/WebCore.gyp
 CHROMIUMLDFLAGS=$(addprefix -L$(CHLIBS)/,$(LIBDIRS)) $(addprefix -L$(CHLIBS)/third_party/,$(THIRDPARTYLIBDIRS))
-TPLIBS=-llibevent -lzlib -llibpng -llibxml -llibjpeg -llibxslt -lbzip2 -lsqlite
+TPLIBS=-levent -lzlib -lpng -lxml -ljpeg -lxslt -lbzip2 -lsqlite
 
 GENINCLUDES=$(CHROMIUMDIR)/src/out/$(CHROMIUMMODE)/obj/gen/chrome
 
@@ -114,7 +114,7 @@ endif
 CHROMIUMLDFLAGS=-L$(CHROMIUMLIBPATH)
 TPLIBS=-levent -lxslt -ljpeg -lpng -lz -lxml2 -lbz2 -lsqlite
 endif
-CHROMIUMLIBS=$(CHROMIUMLDFLAGS) $(TPLIBS)  -ldl -lm -lcommon -lbrowser -ldebugger -lrenderer -lutility -lprinting -lapp_base -lbase -licui18n -licuuc -licudata -lbase_gfx -lskia -lnet -lgoogleurl -lsdch -lmodp_b64 -lv8_snapshot -lv8_base -lglue -lpcre -lwtf -lwebkit -lwebcore -lmedia -lffmpeg -lhunspell -lplugin -l appcache -lipc -lworker -ldatabase -lcommon_constants -lnpGoogleNaClPluginChrome -lnonnacl_srpc -llibgoogle_nacl_imc_c -lplatform -lsel -lsel_ldr_launcher -lnonnacl_util_chrome -lnrd_xfer -lgio -lexpiration -lnacl -lnonnacl_util_linux
+CHROMIUMLIBS=$(CHROMIUMLDFLAGS) $(TPLIBS)  -ldl -lm -lcommon -lbrowser -ldebugger -lrenderer -lutility -lprinting -lapp_base -lbase -licui18n -licuuc -licudata -lbase_gfx -lskia -lnet -lgoogleurl -lsdch -lmodp_b64 -lv8_snapshot -lv8_base -lglue -lpcre -lwtf -lwebkit -lwebcore -lmedia -lffmpeg -lhunspell -lplugin -l appcache -lipc -lworker -ldatabase -lcommon_constants -lnpGoogleNaClPluginChrome -lnonnacl_srpc -lgoogle_nacl_imc_c -lplatform -lsel -lsel_ldr_launcher -lnonnacl_util_chrome -lnrd_xfer -lgio -lexpiration -lnacl -lnonnacl_util_linux
 # Flags that affect both compiling and linking
 CLIBFLAGS=$(ARCHFLAGS) -fvisibility=hidden -fvisibility-inlines-hidden -fPIC -pthread -Wall -fno-rtti
 

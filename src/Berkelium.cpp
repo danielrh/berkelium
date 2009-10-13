@@ -64,7 +64,7 @@
 #if defined(OS_POSIX)
 #include "base/global_descriptors_posix.h"
 #endif
-#include "base/icu_util.h"
+#include "base/i18n/icu_util.h"
 #include "base/message_loop.h"
 #include "base/path_service.h"
 #include "base/process_util.h"
@@ -224,13 +224,13 @@ void forkedProcessHook(int argc, char **argv) {
 #endif
 #if defined(OS_LINUX)
   // Set up CommandLine::SetProcTitle() support.
-  CommandLine::SetTrueArgv(argv);
+  // apparently no longer needed? CommandLine::SetTrueArgv(argv);
 #endif
 
   const CommandLine& parsed_command_line = *CommandLine::ForCurrentProcess();
-  std::wstring process_type =
+  std::wstring wide_process_type =
       parsed_command_line.GetSwitchValue(switches::kProcessType);
-
+  std::string process_type(wide_process_type.begin(),wide_process_type.end());
 #if defined(OS_MACOSX)
   mac_util::SetOverrideAppBundlePath(chrome::GetFrameworkBundlePath());
 #endif  // OS_MACOSX
