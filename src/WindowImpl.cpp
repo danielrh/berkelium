@@ -41,6 +41,7 @@
 #include "base/file_util.h"
 #include "net/base/net_util.h"
 #include "chrome/browser/renderer_host/render_view_host.h"
+#include "chrome/browser/renderer_host/site_instance.h"
 #include "chrome/common/render_messages.h"
 #include "chrome/browser/tab_contents/tab_contents.h"
 #include "chrome/browser/dom_ui/dom_ui.h"
