@@ -59,7 +59,10 @@ public:
 
     virtual void onBeforeUnload(Window *win, bool *proceed)=0;
     virtual void onCancelUnload(Window *win)=0;
+
     virtual void onCrashed(Window *win)=0;
+    virtual void onUnresponsive(Window *win)=0;
+    virtual void onResponsive(Window *win)=0;
 
     virtual void onCreatedWindow(Window *win, Window *newWindow)=0;
 

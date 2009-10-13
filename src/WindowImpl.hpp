@@ -34,21 +34,24 @@
 #define _BERKELIUM_WINDOWIMPL_HPP_
 #include "berkelium/Widget.hpp"
 #include "berkelium/Window.hpp"
+#include "NavigationController.hpp"
 #include "base/gfx/rect.h"
 #include "base/gfx/size.h"
 #include "chrome/browser/renderer_host/render_widget_host.h"
 #include "chrome/browser/renderer_host/render_view_host.h"
 #include "chrome/browser/renderer_host/render_view_host_delegate.h"
-#include "chrome/browser/tab_contents/navigation_controller.h"
-
+#include "chrome/browser/history/history.h"
 class RenderProcessHost;
 class Profile;
+class SelectFileDialog;
 
 namespace Berkelium {
 class WindowView;
 class RenderWidget;
 class MemoryRenderViewHost;
 class Rect;
+class NavigationController;
+
 class WindowImpl :
         public Window,
         public RenderViewHostDelegate,
@@ -64,6 +67,12 @@ class WindowImpl :
 
     WindowImpl(const Context*otherContext, int routingId);
 
+    void UpdateHistoryForNavigation(
+        const GURL& virtual_url,
+        const NavigationController::LoadCommittedDetails& details,
+        const ViewHostMsg_FrameNavigate_Params& params);
+    bool UpdateTitleForEntry(NavigationEntry* ent, const std::wstring& title);
+
 public:
     WindowImpl *getImpl();
 //    WindowImpl();
@@ -73,6 +82,19 @@ public:
     const GURL &getCurrentURL() {
         return mCurrentURL;
     }
+    SiteInstance *GetSiteInstance();
+    bool is_crashed() const { return is_crashed_; }
+    void SetIsCrashed(bool state);
+    void ShowRepostFormWarningDialog();
+    void UpdateMaxPageID(int32 page_id);
+    int32 GetMaxPageID();
+
+    bool NavigateToPendingEntry(bool reload);
+
+    // Changes the IsLoading state and notifies delegate as needed
+    // |details| is used to provide details on the load that just finished
+    // (but can be null if not applicable). Can be overridden.
+    void SetIsLoading(bool is_loading);
 
     void executeJavascript(const std::wstring &javascript);
     bool navigateTo(const std::string &url);
@@ -125,8 +147,42 @@ protected: /******* RenderViewHostDelegate *******/
     virtual RenderViewHostDelegate::View* GetViewDelegate();
     virtual RenderViewHostDelegate::Resource* GetResourceDelegate();
 
+    virtual void RendererUnresponsive(RenderViewHost* render_view_host,
+                                      bool is_during_unload);
+    virtual void RendererResponsive(RenderViewHost* render_view_host);
+    // crashed
+    virtual void RenderViewGone(RenderViewHost* render_view_host);
+    // "un-crashed"
+    virtual void RenderViewReady(RenderViewHost* render_view_host);
+
     virtual void DidStartLoading(RenderViewHost* render_view_host);
     virtual void DidStopLoading(RenderViewHost* render_view_host);
+
+    virtual void DidNavigate(RenderViewHost* render_view_host,
+                             const ViewHostMsg_FrameNavigate_Params& params);
+    virtual void UpdateState(RenderViewHost* render_view_host,
+                             int32 page_id,
+                             const std::string& state);
+    virtual void UpdateTitle(RenderViewHost* render_view_host,
+                             int32 page_id,
+                             const std::wstring& title);
+  virtual void Close(RenderViewHost* render_view_host);
+  //virtual void RequestMove(const gfx::Rect& new_bounds);
+  virtual void RequestOpenURL(const GURL& url, const GURL& referrer,
+                              WindowOpenDisposition disposition);
+  virtual void DomOperationResponse(const std::string& json_string,
+                                    int automation_id);
+  virtual void RunJavaScriptMessage(const std::wstring& message,
+                                    const std::wstring& default_prompt,
+                                    const GURL& frame_url,
+                                    const int flags,
+                                    IPC::Message* reply_msg,
+                                    bool* did_suppress_message);
+  virtual void RunFileChooser(bool multiple_files,
+                              const string16& title,
+                              const FilePath& default_file);
+
+
 
   // Functions for managing switching of Renderers. For TabContents, this is
   // implemented by the RenderViewHostManager
@@ -209,11 +265,16 @@ private:
     int mMouseY;
 
     gfx::Rect mRect;
-    NavigationEntry *mLastNavEntry;
-    NavigationEntry *mNavEntry;
+
+    NavigationController mController;
+    scoped_refptr<SelectFileDialog> mSelectFileDialog;
 
     std::map<int, WindowImpl*> mNewlyCreatedWindows;
     std::map<int, RenderWidget*> mNewlyCreatedWidgets;
+
+    bool received_page_title_;
+    bool is_loading_;
+    bool is_crashed_;
 
     // Manages creation and swapping of render views.
     RenderViewHost *mRenderViewHost;

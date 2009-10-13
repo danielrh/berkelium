@@ -79,6 +79,14 @@ public:
         std::cout << "*** onLoadError "<<mURL<<": "<<error<<std::endl;
     }
 
+    virtual void onResponsive(Window *win) {
+        std::cout << "*** onResponsive "<<mURL<<std::endl;
+    }
+
+    virtual void onUnresponsive(Window *win) {
+        std::cout << "*** onUnresponsive "<<mURL<<std::endl;
+    }
+
     virtual void onPaint(Window *wini, const unsigned char *bitmap_in, const Rect &bitmap_rect,
                          int dx, int dy, const Rect &scroll_rect) {
         std::cout << "*** onPaint "<<mURL<<std::endl;

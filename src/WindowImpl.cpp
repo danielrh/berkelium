@@ -61,21 +61,23 @@ void WindowImpl::init(SiteInstance*site, int routing_id) {
     CreateRenderViewForRenderManager(host());
 }
 
-WindowImpl::WindowImpl(const Context*otherContext):Window(otherContext) {
+WindowImpl::WindowImpl(const Context*otherContext):
+        Window(otherContext),
+        mController(this, profile())
+{
     mMouseX = 0;
     mMouseY = 0;
     mCurrentURL = GURL("about:blank");
-    mLastNavEntry = NULL;
-    mNavEntry = NULL;
     zIndex = 0;
     init(mContext->getImpl()->getSiteInstance(), MSG_ROUTING_NONE);
 }
-WindowImpl::WindowImpl(const Context*otherContext, int routing_id):Window(otherContext) {
+WindowImpl::WindowImpl(const Context*otherContext, int routing_id):
+        Window(otherContext),
+        mController(this, profile())
+{
     mMouseX = 0;
     mMouseY = 0;
     mCurrentURL = GURL("about:blank");
-    mLastNavEntry = NULL;
-    mNavEntry = NULL;
     zIndex = 0;
     init(mContext->getImpl()->getSiteInstance(), routing_id);
 }
@@ -83,9 +85,6 @@ WindowImpl::~WindowImpl() {
     RenderViewHost* render_view_host = mRenderViewHost;
     mRenderViewHost = NULL;
     render_view_host->Shutdown();
-
-    delete mLastNavEntry;
-    delete mNavEntry;
 }
 
 RenderProcessHost *WindowImpl::process() const {
@@ -101,6 +100,20 @@ RenderViewHost *WindowImpl::host() const {
     return mRenderViewHost;
 }
 
+SiteInstance *WindowImpl::GetSiteInstance() {
+    return mContext->getImpl()->getSiteInstance();
+}
+
+void WindowImpl::SetIsCrashed(bool state) {
+  if (state == is_crashed_)
+    return;
+
+  is_crashed_ = state;
+}
+
+void WindowImpl::SetIsLoading(bool is_loading) {
+    host()->SetIsLoading(is_loading);
+}
 int WindowImpl::GetBrowserWindowID() const {
     // FIXME!!!!
     return 0;
@@ -252,31 +265,12 @@ bool WindowImpl::doNavigateTo(
     if (view()) {
         view()->Hide();
     }
-    if (mLastNavEntry) {
-        delete mLastNavEntry;
-    }
-    mLastNavEntry = mNavEntry;
-    mNavEntry = CreateNavigationEntry(
+    mController.LoadEntry(CreateNavigationEntry(
         newURL,
         referrerURL,
-        PageTransition::TYPED);
+        PageTransition::TYPED));
+    NavigateToPendingEntry(reload);
 
-    if (!mNavEntry) {
-        mNavEntry = mLastNavEntry;
-        return false;
-    }
-
-    if (!host()) {
-        return false;  // Unable to create the desired render view host.
-    }
-
-    // Navigate in the desired RenderViewHost.
-    ViewMsg_Navigate_Params navigate_params;
-    MakeNavigateParams(*mNavEntry, reload, &navigate_params);
-    host()->Navigate(navigate_params);
-    if (view()) {
-        view()->Show();
-    }
     return true;
 }
 
@@ -298,6 +292,39 @@ NavigationEntry* WindowImpl::CreateNavigationEntry(
         file_util::GetFilenameFromPath(net::FormatUrl(url, L"en_US"))));
   }
   return entry;
+}
+
+bool WindowImpl::NavigateToPendingEntry(bool reload) {
+    const NavigationEntry& entry = *mController.pending_entry();
+
+    if (!host()) {
+        return false;  // Unable to create the desired render view host.
+    }
+
+    // Navigate in the desired RenderViewHost.
+    ViewMsg_Navigate_Params navigate_params;
+    MakeNavigateParams(entry, reload, &navigate_params);
+    host()->Navigate(navigate_params);
+    if (view()) {
+        view()->Show();
+    }
+
+    return true;
+}
+
+void WindowImpl::UpdateMaxPageID(int32 page_id) {
+  // Ensure both the SiteInstance and RenderProcessHost update their max page
+  // IDs in sync. Only TabContents will also have site instances, except during
+  // testing.
+  if (GetSiteInstance())
+    GetSiteInstance()->UpdateMaxPageID(page_id);
+  process()->UpdateMaxPageID(page_id);
+}
+
+int32 WindowImpl::GetMaxPageID() {
+  if (GetSiteInstance())
+    return GetSiteInstance()->max_page_id();
+  return 0;
 }
 
 
@@ -330,7 +357,9 @@ void WindowImpl::onPaint(Widget *wid,
 
 void WindowImpl::onWidgetDestroyed(Widget *wid) {
     if (wid != getWidget()) {
-        mDelegate->onWidgetDestroyed(this, wid);
+        if (mDelegate) {
+            mDelegate->onWidgetDestroyed(this, wid);
+        }
     }
     removeWidget(wid);
 }
@@ -384,7 +413,7 @@ void WindowImpl::BeforeUnloadFiredFromRenderManager(
 void WindowImpl::DidStartLoading(
     RenderViewHost* render_view_host) {
 
-    render_view_host->SetIsLoading(true);
+    SetIsLoading(true);
 
     if (mDelegate) {
 //        mDelegate->onStartLoading(this);
@@ -393,7 +422,7 @@ void WindowImpl::DidStartLoading(
 void WindowImpl::DidStopLoading(
     RenderViewHost* render_view_host) {
 
-    render_view_host->SetIsLoading(true);
+    SetIsLoading(false);
 
 /*
     if (mDelegate) {
@@ -421,6 +450,255 @@ RenderViewHostDelegate::View* WindowImpl::GetViewDelegate() {
 RenderViewHostDelegate::Resource* WindowImpl::GetResourceDelegate() {
     return this;
 }
+
+void WindowImpl::UpdateHistoryForNavigation(
+    const GURL& virtual_url,
+    const NavigationController::LoadCommittedDetails& details,
+    const ViewHostMsg_FrameNavigate_Params& params) {
+  if (profile()->IsOffTheRecord())
+    return;
+
+  // Add to history service.
+  HistoryService* hs = profile()->GetHistoryService(Profile::IMPLICIT_ACCESS);
+  if (hs) {
+    if (PageTransition::IsMainFrame(params.transition) &&
+        virtual_url != params.url) {
+      // Hack on the "virtual" URL so that it will appear in history. For some
+      // types of URLs, we will display a magic URL that is different from where
+      // the page is actually navigated. We want the user to see in history
+      // what they saw in the URL bar, so we add the virtual URL as a redirect.
+      // This only applies to the main frame, as the virtual URL doesn't apply
+      // to sub-frames.
+      std::vector<GURL> redirects = params.redirects;
+      if (!redirects.empty())
+        redirects.back() = virtual_url;
+      hs->AddPage(virtual_url, this, params.page_id, params.referrer,
+                  params.transition, redirects, details.did_replace_entry);
+    } else {
+      hs->AddPage(params.url, this, params.page_id, params.referrer,
+                  params.transition, params.redirects,
+                  details.did_replace_entry);
+    }
+  }
+}
+
+bool WindowImpl::UpdateTitleForEntry(NavigationEntry* entry,
+                                      const std::wstring& title) {
+  // For file URLs without a title, use the pathname instead. In the case of a
+  // synthesized title, we don't want the update to count toward the "one set
+  // per page of the title to history."
+  std::wstring final_title;
+  bool explicit_set;
+  if (entry->url().SchemeIsFile() && title.empty()) {
+    final_title = UTF8ToWide(entry->url().ExtractFileName());
+    explicit_set = false;  // Don't count synthetic titles toward the set limit.
+  } else {
+    TrimWhitespace(title, TRIM_ALL, &final_title);
+    explicit_set = true;
+  }
+
+  if (final_title == UTF16ToWideHack(entry->title()))
+    return false;  // Nothing changed, don't bother.
+
+  entry->set_title(WideToUTF16Hack(final_title));
+
+  // Update the history system for this page.
+  if (!profile()->IsOffTheRecord() && !received_page_title_) {
+    HistoryService* hs =
+        profile()->GetHistoryService(Profile::IMPLICIT_ACCESS);
+    if (hs)
+      hs->SetPageTitle(entry->virtual_url(), final_title);
+
+    // Don't allow the title to be saved again for explicitly set ones.
+    received_page_title_ = explicit_set;
+  }
+
+  // Lastly, set the title for the view.
+  //view()->SetPageTitle(final_title);
+
+  return true;
+}
+
+
+
+void WindowImpl::RendererUnresponsive(RenderViewHost* rvh,
+                                  bool is_during_unload) {
+  if (rvh != host()) {
+    return;
+  }
+  if (mDelegate) mDelegate->onUnresponsive(this);
+}
+void WindowImpl::RendererResponsive(RenderViewHost* rvh) {
+  if (rvh != host()) {
+    return;
+  }
+  if (mDelegate) mDelegate->onResponsive(this);
+}
+
+void WindowImpl::RenderViewReady(RenderViewHost* rvh) {
+  if (rvh != host()) {
+    // Don't notify the world, since this came from a renderer in the
+    // background.
+    return;
+  }
+
+  bool was_crashed = is_crashed();
+  SetIsCrashed(false);
+
+  // Restore the focus to the tab (otherwise the focus will be on the top
+  // window).
+  if (was_crashed)
+      view()->Focus();
+}
+
+void WindowImpl::RenderViewGone(RenderViewHost* rvh) {
+  // Ask the print preview if this renderer was valuable.
+  if (rvh != host()) {
+    // The pending page's RenderViewHost is gone.
+    return;
+  }
+
+  SetIsLoading(false);
+  SetIsCrashed(true);
+
+  // Tell the view that we've crashed so it can prepare the sad tab page.
+  //view()->OnTabCrashed();
+  if (mDelegate) mDelegate->onCrashed(this);
+}
+
+void WindowImpl::DidNavigate(RenderViewHost* rvh,
+                              const ViewHostMsg_FrameNavigate_Params& params) {
+  int extra_invalidate_flags = 0;
+
+  // Update the site of the SiteInstance if it doesn't have one yet.
+  if (!GetSiteInstance()->has_site())
+    GetSiteInstance()->SetSite(params.url);
+
+  // Need to update MIME type here because it's referred to in
+  // UpdateNavigationCommands() called by RendererDidNavigate() to
+  // determine whether or not to enable the encoding menu.
+  // It's updated only for the main frame. For a subframe,
+  // RenderView::UpdateURL does not set params.contents_mime_type.
+  // (see http://code.google.com/p/chromium/issues/detail?id=2929 )
+  // TODO(jungshik): Add a test for the encoding menu to avoid
+  // regressing it again.
+
+  /*if (PageTransition::IsMainFrame(params.transition))
+        contents_mime_type_ = params.contents_mime_type;
+  */
+
+  NavigationController::LoadCommittedDetails details;
+  bool did_navigate = mController.RendererDidNavigate(
+      params, extra_invalidate_flags, &details);
+
+  // Update history. Note that this needs to happen after the entry is complete,
+  // which WillNavigate[Main,Sub]Frame will do before this function is called.
+  if (params.should_update_history) {
+    // Most of the time, the displayURL matches the loaded URL, but for about:
+    // URLs, we use a data: URL as the real value.  We actually want to save
+    // the about: URL to the history db and keep the data: URL hidden. This is
+    // what the TabContents' URL getter does.
+    UpdateHistoryForNavigation(GetURL(), details, params);
+  }
+
+  if (!did_navigate)
+    return;  // No navigation happened.
+
+  // DO NOT ADD MORE STUFF TO THIS FUNCTION! Your component should either listen
+  // for the appropriate notification (best) or you can add it to
+  // DidNavigateMainFramePostCommit / DidNavigateAnyFramePostCommit (only if
+  // necessary, please).
+
+  // Run post-commit tasks.
+  if (details.is_main_frame) {
+// FIXME(pathorn): Look into what TabContents uses these functions for.
+      //DidNavigateMainFramePostCommit(details, params);
+  }
+  //DidNavigateAnyFramePostCommit(details, params);
+}
+
+void WindowImpl::UpdateState(RenderViewHost* rvh,
+                              int32 page_id,
+                              const std::string& state) {
+  DCHECK(rvh == host());
+
+  // We must be prepared to handle state updates for any page, these occur
+  // when the user is scrolling and entering form data, as well as when we're
+  // leaving a page, in which case our state may have already been moved to
+  // the next page. The navigation controller will look up the appropriate
+  // NavigationEntry and update it when it is notified via the delegate.
+
+  int entry_index = mController.GetEntryIndexWithPageID(
+      GetSiteInstance(), page_id);
+  if (entry_index < 0)
+    return;
+  NavigationEntry* entry = mController.GetEntryAtIndex(entry_index);
+
+  if (state == entry->content_state())
+    return;  // Nothing to update.
+  entry->set_content_state(state);
+  mController.NotifyEntryChanged(entry, entry_index);
+}
+
+void WindowImpl::UpdateTitle(RenderViewHost* rvh,
+                              int32 page_id, const std::wstring& title) {
+  // If we have a title, that's a pretty good indication that we've started
+  // getting useful data.
+  //SetNotWaitingForResponse();
+
+  DCHECK(rvh == host());
+  NavigationEntry* entry = mController.GetEntryWithPageID(GetSiteInstance(),
+                                                            page_id);
+  if (!entry || !UpdateTitleForEntry(entry, title))
+    return;
+}
+
+void WindowImpl::ShowRepostFormWarningDialog() {
+}
+
+void WindowImpl::RunFileChooser(bool multiple_files,
+                                 const string16& title,
+                                 const FilePath& default_file) {
+/* Don't have access to a top level window, since this could be run in a
+   windowless environment. Perhaps we need a function to return a native
+   window handle or NULL if it does not want to allow file choosers.
+*/
+/*
+  if (!mSelectFileDialog.get())
+    mSelectFileDialog = SelectFileDialog::Create(this);
+  SelectFileDialog::Type dialog_type =
+    multiple_files ? SelectFileDialog::SELECT_OPEN_MULTI_FILE :
+                     SelectFileDialog::SELECT_OPEN_FILE;
+  mSelectFileDialog->SelectFile(dialog_type, title, default_file,
+                                  NULL, 0, FILE_PATH_LITERAL(""),
+                                  view()->GetTopLevelNativeWindow(), NULL);
+*/
+}
+
+void WindowImpl::RequestOpenURL(const GURL& url, const GURL& referrer,
+                                 WindowOpenDisposition disposition) {
+    /* if (disposition == NEW_WINDOW) {
+     */
+// if (disposition == CURRENT_TAB)
+    doNavigateTo(url, referrer, false);
+}
+
+void WindowImpl::DomOperationResponse(const std::string& json_string,
+                                       int automation_id) {
+}
+
+
+void WindowImpl::RunJavaScriptMessage(
+    const std::wstring& message,
+    const std::wstring& default_prompt,
+    const GURL& frame_url,
+    const int flags,
+    IPC::Message* reply_msg,
+    bool* did_suppress_message)
+{
+    host()->JavaScriptMessageBoxClosed(reply_msg, false, std::wstring());
+}
+
 
 /******* RenderViewHostDelegate::Resource *******/
 
@@ -459,15 +737,22 @@ void WindowImpl::DidRedirectProvisionalLoad(
     const GURL& target_url)
 {
     // should use page_id to lookup in history
-    NavigationEntry *entry = mNavEntry;
-    if (entry->url() == source_url) {
-        entry->set_url(target_url);
-    }
+    NavigationEntry *entry;
+    if (page_id == -1)
+        entry = mController.pending_entry();
+    else
+        entry = mController.GetEntryWithPageID(GetSiteInstance(), page_id);
+    if (!entry || entry->url() != source_url)
+        return;
+    entry->set_url(target_url);
 }
 
 void WindowImpl::DidRedirectResource(ResourceRequestDetails* details) {
     // Only accessor function:
     // details->new_url();
+}
+
+void WindowImpl::Close(RenderViewHost* rvh) {
 }
 
 void WindowImpl::DidLoadResourceFromMemoryCache(
@@ -490,6 +775,8 @@ void WindowImpl::DocumentLoadedInFrame() {
         mDelegate->onLoad(this);
     }
 }
+
+
 
 /******* RenderViewHostDelegate::View *******/
 void WindowImpl::CreateNewWindow(int route_id,
