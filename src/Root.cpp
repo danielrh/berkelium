@@ -41,6 +41,7 @@
 #include "base/path_service.h"
 #include "base/thread.h"
 #include "base/command_line.h"
+#include "base/file_util.h"
 #include "base/i18n/icu_util.h"
 #include "net/base/cookie_monster.h"
 #include "chrome/common/chrome_paths.h"
@@ -59,9 +60,13 @@
 #include "base/logging.h"
 #include <signal.h>
 #include <sys/stat.h>
+#ifdef _WIN32
+#include <direct.h>
+#endif
 
 //icu_util::Initialize()
 
+#ifndef _WIN32
 extern "C"
 void handleINT(int sig) {
     FilePath homedirpath;
@@ -70,6 +75,7 @@ void handleINT(int sig) {
     unlink(child.value().c_str());
     exit(-sig);
 }
+#endif
 
 AUTO_SINGLETON_INSTANCE(Berkelium::Root);
 namespace Berkelium {
@@ -83,6 +89,7 @@ Root::Root (){
 
     new base::AtExitManager();
 
+#ifndef _WIN32
 /// Temporary SingletonLock fix:
 // Do not do this for child processes--they should only be initialized.
 // Children should never delete the lock.
@@ -95,7 +102,7 @@ Root::Root (){
     if (signal(SIGTERM, handleINT) == SIG_IGN) {
         signal(SIGTERM, SIG_IGN);
     }
-
+#endif
 
     chrome::RegisterPathProvider();
     app::RegisterPathProvider();
@@ -103,6 +110,9 @@ Root::Root (){
     PathService::Get(chrome::DIR_USER_DATA,&homedirpath);
 
     //RenderProcessHost::set_run_renderer_in_process(true);
+
+	mMessageLoop = new MessageLoop(MessageLoop::TYPE_UI);
+    mUIThread = new ChromeThread();
 
     mProcessSingleton= new ProcessSingleton(homedirpath);
     BrowserProcess *browser_process;
@@ -133,9 +143,6 @@ Root::Root (){
     //APPEND_TO_OLD_LOG_FILE
 
     mRenderViewHostFactory = new MemoryRenderViewHostFactory;
-
-	mMessageLoop = new MessageLoop(MessageLoop::TYPE_UI);
-    mUIThread = new ChromeThread();
     
 //    mNotificationService=new NotificationService();
 //    ChildProcess* coreProcess=new ChildProcess;
@@ -164,19 +171,31 @@ Root::Root (){
         new ResourceDispatcherHost(ChromeThread::GetMessageLoop(ChromeThread::IO));
     resDispatcher->Initialize();
     {
+#ifndef OS_WIN
         char dir[L_tmpnam+1];
         tmpnam(dir);
         mkdir(dir
-#ifndef OS_WIN
               ,0777
-#endif
             );
+#else
+        std::wstring dir;
+        if (!file_util::CreateNewTempDirectory(std::wstring(L"plugin_"),
+                                               &dir)) {
+            return;
+        }
+#endif
         FilePath path(dir);
         PluginService::GetInstance()->SetChromePluginDataDir(path);
     }
     PluginService::GetInstance()->LoadChromePlugins(resDispatcher);
 
-    PathService::Override(base::FILE_EXE, FilePath("./berkelium"));
+    PathService::Override(base::FILE_EXE, FilePath(
+#ifdef _WIN32
+        L".\berkelium"
+#else
+        "./berkelium"
+#endif
+        ));
     mDefaultRequestContext=mProf->GetRequestContext();
 }
 

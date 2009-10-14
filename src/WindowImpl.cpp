@@ -186,7 +186,7 @@ void WindowImpl::mouseButton(unsigned int buttonID, bool down) {
 void WindowImpl::mouseWheel(int xScroll, int yScroll) {
     Widget *wid = getWidgetAtPoint(mMouseX, mMouseY, true);
     if (wid) {
-        wid->mouseButton(xScroll, yScroll);
+        wid->mouseWheel(xScroll, yScroll);
     }
 }
 

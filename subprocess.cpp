@@ -33,6 +33,7 @@
 #include <berkelium/Berkelium.hpp>
 
 #ifdef _WIN32
+#include <windows.h>
 int WINAPI WinMain(
     HINSTANCE hInstance,
     HINSTANCE hPrevInstance,
@@ -40,7 +41,7 @@ int WINAPI WinMain(
     int nCmdShow)
 {
     int argc = 0;
-    char **argv = NULL
+    char **argv = NULL;
 #else
 int main(int argc, char**argv)
 {

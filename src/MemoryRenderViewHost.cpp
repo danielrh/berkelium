@@ -98,8 +98,8 @@ MemoryRenderWidgetHost::~MemoryRenderWidgetHost() {
 void MemoryRenderWidgetHost::OnMessageReceived(const IPC::Message& msg) {
   bool msg_is_ok = true;
   IPC_BEGIN_MESSAGE_MAP_EX(MemoryRenderWidgetHost, msg, msg_is_ok)
-      IPC_MESSAGE_HANDLER(ViewHostMsg_ScrollRect, MemoryRenderWidgetHost::Memory_OnMsgScrollRect)
-      IPC_MESSAGE_HANDLER(ViewHostMsg_PaintRect, MemoryRenderWidgetHost::Memory_OnMsgPaintRect)
+      IPC_MESSAGE_HANDLER(ViewHostMsg_ScrollRect, Memory_OnMsgScrollRect)
+      IPC_MESSAGE_HANDLER(ViewHostMsg_PaintRect, Memory_OnMsgPaintRect)
       IPC_MESSAGE_UNHANDLED(this->RenderWidgetHost::OnMessageReceived(msg))
   IPC_END_MESSAGE_MAP_EX()
       ;

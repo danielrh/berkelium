@@ -29,7 +29,6 @@
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 #include "chrome/browser/tab_contents/tab_contents.h"
 #include "berkelium/Berkelium.hpp"
 #include "Root.hpp"
@@ -74,6 +73,8 @@
 #include "base/string_util.h"
 #if defined(OS_WIN)
 #include "base/win_util.h"
+#include "sandbox/src/sandbox_factory.h"
+#include "sandbox/src/dep.h"
 #endif
 #if defined(OS_MACOSX)
 #include "base/mac_util.h"
@@ -107,7 +108,68 @@
 //////////////////////
 
 #if defined(OS_WIN)
-extern "C" int _set_new_mode(int);
+EXTERN_C IMAGE_DOS_HEADER __ImageBase;
+#define HINST_THISCOMPONENT ((HINSTANCE)&__ImageBase)
+
+const wchar_t kProfilingDll[] = L"memory_watcher.dll";
+
+// Load the memory profiling DLL.  All it needs to be activated
+// is to be loaded.  Return true on success, false otherwise.
+bool LoadMemoryProfiler() {
+  HMODULE prof_module = LoadLibrary(kProfilingDll);
+  return prof_module != NULL;
+}
+
+CAppModule _Module;
+
+#pragma optimize("", off)
+// Handlers for invalid parameter and pure call. They generate a breakpoint to
+// tell breakpad that it needs to dump the process.
+void InvalidParameter(const wchar_t* expression, const wchar_t* function,
+                      const wchar_t* file, unsigned int line,
+                      uintptr_t reserved) {
+  __debugbreak();
+}
+
+void PureCall() {
+  __debugbreak();
+}
+
+void OnNoMemory() {
+  // Kill the process. This is important for security, since WebKit doesn't
+  // NULL-check many memory allocations. If a malloc fails, returns NULL, and
+  // the buffer is then used, it provides a handy mapping of memory starting at
+  // address 0 for an attacker to utilize.
+  __debugbreak();
+}
+
+// Handlers to silently dump the current process when there is an assert in
+// chrome.
+void ChromeAssert(const std::string& str) {
+  // Get the breakpad pointer from chrome.exe
+  typedef void (__cdecl *DumpProcessFunction)();
+  DumpProcessFunction DumpProcess = reinterpret_cast<DumpProcessFunction>(
+      ::GetProcAddress(::GetModuleHandle(chrome::kBrowserProcessExecutableName),
+                       "DumpProcess"));
+  if (DumpProcess)
+    DumpProcess();
+}
+
+#pragma optimize("", on)
+
+// Early versions of Chrome incorrectly registered a chromehtml: URL handler,
+// which gives us nothing but trouble. Avoid launching chrome this way since
+// some apps fail to properly escape arguments.
+bool HasDeprecatedArguments(const std::wstring& command_line) {
+  const wchar_t kChromeHtml[] = L"chromehtml:";
+  std::wstring command_line_lower = command_line;
+  // We are only searching for ASCII characters so this is OK.
+  StringToLowerASCII(&command_line_lower);
+  std::wstring::size_type pos = command_line_lower.find(kChromeHtml);
+  return (pos != std::wstring::npos);
+}
+
+//extern "C" int _set_new_mode(int);
 #endif
 extern int BrowserMain(const MainFunctionParams&);
 extern int RendererMain(const MainFunctionParams&);
@@ -238,7 +300,7 @@ void forkedProcessHook(int argc, char **argv) {
 #if defined(OS_WIN)
   // Must do this before any other usage of command line!
   if (HasDeprecatedArguments(parsed_command_line.command_line_string()))
-    return 1;
+    return;
 #endif
 
 #if defined(OS_POSIX)
@@ -285,12 +347,26 @@ void forkedProcessHook(int argc, char **argv) {
   // its initialization.
   SandboxInitWrapper sandbox_wrapper;
 #if defined(OS_WIN)
-  sandbox_wrapper.SetServices(sandbox_info);
+  win_util::WinVersion win_version = win_util::GetWinVersion();
+  if (win_version < win_util::WINVERSION_VISTA) {
+    // On Vista, this is unnecessary since it is controlled through the
+    // /NXCOMPAT linker flag.
+    // Enforces strong DEP support.
+    sandbox::SetCurrentProcessDEP(sandbox::DEP_ENABLED);
+  }
+
+  // Get the interface pointer to the BrokerServices or TargetServices,
+  // depending who we are.
+  sandbox::SandboxInterfaceInfo sandbox_info = {0};
+  sandbox_info.broker_services = sandbox::SandboxFactory::GetBrokerServices();
+  if (!sandbox_info.broker_services)
+    sandbox_info.target_services = sandbox::SandboxFactory::GetTargetServices();
+  sandbox_wrapper.SetServices(&sandbox_info);
 #endif
   sandbox_wrapper.InitializeSandbox(parsed_command_line, process_type);
 
 #if defined(OS_WIN)
-  _Module.Init(NULL, instance);
+  _Module.Init(NULL, HINST_THISCOMPONENT);
 #endif
 
 #if defined(OS_MACOSX)

@@ -49,7 +49,7 @@ namespace Berkelium {
 class WindowView;
 class RenderWidget;
 class MemoryRenderViewHost;
-class Rect;
+struct Rect;
 class NavigationController;
 
 class WindowImpl :

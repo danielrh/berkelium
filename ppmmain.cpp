@@ -36,7 +36,13 @@
 #include "berkelium/Context.hpp"
 
 #include <sys/types.h>
+#ifdef _WIN32
+#define sleep(x) Sleep(x*1000)
+#include <time.h>
+#include <windows.h>
+#else
 #include <sys/select.h>
+#endif
 #include <sstream>
 #include <iostream>
 
@@ -199,10 +205,14 @@ int main () {
     while(true) {
         Berkelium::update();
         {
+#ifdef _WIN32
+            Sleep(10);
+#else
             struct timeval tv;
             tv.tv_sec = 0;
             tv.tv_usec = 10000;
-            select(0,NULL,NULL,NULL, &tv);
+			select(0,NULL,NULL,NULL, &tv);
+#endif
         }
     }
     int retval=Berkelium::renderToBuffer(&buffer[0][0][0],WIDTH,HEIGHT);

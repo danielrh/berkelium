@@ -344,7 +344,7 @@ void zeroWebEvent(T &event, int modifiers, WebKit::WebInputEvent::Type t) {
     event.size=sizeof(T);
     event.modifiers=modifiers;
 #ifdef _WIN32
-    event.timeSTampSeconds=GetTickCount()/1000.0;
+    event.timeStampSeconds=GetTickCount()/1000.0;
 #else
     timeval tv;
     gettimeofday(&tv,NULL);
