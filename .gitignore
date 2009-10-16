@@ -6,3 +6,16 @@ Release
 *.pak
 *.dSYM
 chrome_debug.log
+*.exp
+*.lib
+*.dll
+*.exe
+*.user
+*.pdb
+*.lib
+*.ncb
+*.suo
+*.ilk
+chrome.log
+First Run
+/win32/resources
