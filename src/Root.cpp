@@ -63,6 +63,14 @@
 #ifdef _WIN32
 #include <direct.h>
 #endif
+#include "chrome/common/sandbox_init_wrapper.h"
+#if defined(OS_WIN)
+#include "base/win_util.h"
+#include "sandbox/src/sandbox_factory.h"
+#include "sandbox/src/dep.h"
+#include "sandbox/src/sandbox.h"
+#include "tools/memory_watcher/memory_watcher.h"
+#endif
 
 //icu_util::Initialize()
 
@@ -83,7 +91,13 @@ namespace Berkelium {
 Root::Root (){
 
     {
-        const char* argv[] = { "berkelium", "--browser-subprocess-path=./berkelium" };
+        const char* argv[] = { "berkelium",
+#ifdef _WIN32
+			"--browser-subprocess-path=berkelium.exe"
+#else
+			"--browser-subprocess-path=./berkelium"
+#endif
+		};
         CommandLine::Init(2, argv);
     }
 
@@ -141,6 +155,27 @@ Root::Root (){
         *CommandLine::ForCurrentProcess(),
         logging::DELETE_OLD_LOG_FILE);
     //APPEND_TO_OLD_LOG_FILE
+
+  SandboxInitWrapper sandbox_wrapper;
+#if defined(OS_WIN)
+  win_util::WinVersion win_version = win_util::GetWinVersion();
+  if (win_version < win_util::WINVERSION_VISTA) {
+    // On Vista, this is unnecessary since it is controlled through the
+    // /NXCOMPAT linker flag.
+    // Enforces strong DEP support.
+    sandbox::SetCurrentProcessDEP(sandbox::DEP_ENABLED);
+  }
+  // Get the interface pointer to the BrokerServices or TargetServices,
+  // depending who we are.
+  sandbox::SandboxInterfaceInfo sandbox_info = {0};
+  sandbox_info.broker_services = sandbox::SandboxFactory::GetBrokerServices();
+  if (!sandbox_info.broker_services)
+    sandbox_info.target_services = sandbox::SandboxFactory::GetTargetServices();
+  else
+    g_browser_process->InitBrokerServices(sandbox_info.broker_services);
+  sandbox_wrapper.SetServices(&sandbox_info);
+#endif
+  sandbox_wrapper.InitializeSandbox(*CommandLine::ForCurrentProcess(), "browser");
 
     mRenderViewHostFactory = new MemoryRenderViewHostFactory;
     
