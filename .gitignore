@@ -2,7 +2,7 @@
 /berkelium
 Debug
 Release
-ppmrender
+/ppmrender
 *.pak
 *.dSYM
 chrome_debug.log

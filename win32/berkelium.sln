@@ -1,0 +1,32 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 10.00
+# Visual Studio 2008
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "berkelium", "berkelium.vcproj", "{D81F59F1-DB27-49AE-B459-8F0E2383621A}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ppmrender", "ppmrender\ppmrender.vcproj", "{96E21329-033B-4CFA-9C49-C280D18E6EFB}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "subprocess", "subprocess\subprocess.vcproj", "{BBC8887A-61BF-4B64-8F23-255B82D60956}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{D81F59F1-DB27-49AE-B459-8F0E2383621A}.Debug|Win32.ActiveCfg = Debug|Win32
+		{D81F59F1-DB27-49AE-B459-8F0E2383621A}.Debug|Win32.Build.0 = Debug|Win32
+		{D81F59F1-DB27-49AE-B459-8F0E2383621A}.Release|Win32.ActiveCfg = Release|Win32
+		{D81F59F1-DB27-49AE-B459-8F0E2383621A}.Release|Win32.Build.0 = Release|Win32
+		{96E21329-033B-4CFA-9C49-C280D18E6EFB}.Debug|Win32.ActiveCfg = Debug|Win32
+		{96E21329-033B-4CFA-9C49-C280D18E6EFB}.Debug|Win32.Build.0 = Debug|Win32
+		{96E21329-033B-4CFA-9C49-C280D18E6EFB}.Release|Win32.ActiveCfg = Release|Win32
+		{96E21329-033B-4CFA-9C49-C280D18E6EFB}.Release|Win32.Build.0 = Release|Win32
+		{BBC8887A-61BF-4B64-8F23-255B82D60956}.Debug|Win32.ActiveCfg = Debug|Win32
+		{BBC8887A-61BF-4B64-8F23-255B82D60956}.Debug|Win32.Build.0 = Debug|Win32
+		{BBC8887A-61BF-4B64-8F23-255B82D60956}.Release|Win32.ActiveCfg = Release|Win32
+		{BBC8887A-61BF-4B64-8F23-255B82D60956}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
