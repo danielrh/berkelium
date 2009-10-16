@@ -66,10 +66,8 @@
 #include "chrome/common/sandbox_init_wrapper.h"
 #if defined(OS_WIN)
 #include "base/win_util.h"
-#include "sandbox/src/sandbox_factory.h"
-#include "sandbox/src/dep.h"
-#include "sandbox/src/sandbox.h"
 #include "tools/memory_watcher/memory_watcher.h"
+#include "sandbox/src/broker_services.h"
 #endif
 
 //icu_util::Initialize()
@@ -85,20 +83,41 @@ void handleINT(int sig) {
 }
 #endif
 
+namespace sandbox {
+    // Not exported.
+    HANDLE g_shared_section = NULL;
+    bool s_is_broker = true;
+}
+
 AUTO_SINGLETON_INSTANCE(Berkelium::Root);
 namespace Berkelium {
 
 Root::Root (){
-
-    {
-        const char* argv[] = { "berkelium",
 #ifdef _WIN32
-			"--browser-subprocess-path=berkelium.exe"
-#else
-			"--browser-subprocess-path=./berkelium"
+    FilePath subprocess;
 #endif
-		};
-        CommandLine::Init(2, argv);
+    {
+// From <base/command_line.h>:
+  // Initialize the current process CommandLine singleton.  On Windows,
+  // ignores its arguments (we instead parse GetCommandLineW()
+  // directly) because we don't trust the CRT's parsing of the command
+  // line, but it still must be called to set up the command line.
+// This means that on windows, we have to call ::Init with whatever we feel
+// like (since this is the only way to create the static CommandLine instance),
+// and then we have manually call ParseFromString.
+// (InitFromArgv does not exist on OS_WIN!)
+#ifdef _WIN32
+    FilePath module_dir;
+	PathService::Get(base::DIR_MODULE, &module_dir);
+    subprocess = module_dir.Append(L"berkelium.exe");
+	std::wstring subprocess_str = L"berkelium --browser-subprocess-path=";
+	subprocess_str += subprocess.value();
+    CommandLine::Init(0, NULL);
+    CommandLine::ForCurrentProcess()->ParseFromString(subprocess_str);
+#else
+    const char* argv[] = { "berkelium", "--browser-subprocess-path=./berkelium"};
+    CommandLine::Init(2, argv);
+#endif
     }
 
     new base::AtExitManager();
@@ -158,21 +177,11 @@ Root::Root (){
 
   SandboxInitWrapper sandbox_wrapper;
 #if defined(OS_WIN)
-  win_util::WinVersion win_version = win_util::GetWinVersion();
-  if (win_version < win_util::WINVERSION_VISTA) {
-    // On Vista, this is unnecessary since it is controlled through the
-    // /NXCOMPAT linker flag.
-    // Enforces strong DEP support.
-    sandbox::SetCurrentProcessDEP(sandbox::DEP_ENABLED);
-  }
   // Get the interface pointer to the BrokerServices or TargetServices,
   // depending who we are.
   sandbox::SandboxInterfaceInfo sandbox_info = {0};
-  sandbox_info.broker_services = sandbox::SandboxFactory::GetBrokerServices();
-  if (!sandbox_info.broker_services)
-    sandbox_info.target_services = sandbox::SandboxFactory::GetTargetServices();
-  else
-    g_browser_process->InitBrokerServices(sandbox_info.broker_services);
+  sandbox_info.broker_services = sandbox::BrokerServicesBase::GetInstance();
+  g_browser_process->InitBrokerServices(sandbox_info.broker_services);
   sandbox_wrapper.SetServices(&sandbox_info);
 #endif
   sandbox_wrapper.InitializeSandbox(*CommandLine::ForCurrentProcess(), "browser");
@@ -224,13 +233,13 @@ Root::Root (){
     }
     PluginService::GetInstance()->LoadChromePlugins(resDispatcher);
 
-    PathService::Override(base::FILE_EXE, FilePath(
+    PathService::Override(base::FILE_EXE, 
 #ifdef _WIN32
-        L".\berkelium"
+        subprocess
 #else
-        "./berkelium"
+        FilePath("./berkelium")
 #endif
-        ));
+        );
     mDefaultRequestContext=mProf->GetRequestContext();
 }
 

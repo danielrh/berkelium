@@ -115,7 +115,8 @@ public:
 		g = *(bitmap_in++);
 		r = *(bitmap_in++);
 		a = *(bitmap_in++);
-                fputc(255-a, outfile);  // Red
+                fputc(r, outfile);  // Red
+                //fputc(255-a, outfile);  // Alpha
                 fputc(g, outfile);  // Green
                 fputc(b, outfile);  // Blue
                 //(pixel >> 24) & 0xff;  // Alpha
@@ -182,7 +183,7 @@ int main () {
     win->resize(800,600);
     win->setDelegate(new TestDelegate);
     win->navigateTo("http://dunnbypaul.net/js_mouse/");
-    win->setTransparent(true);
+    win->setTransparent(false);
     //win->navigateTo("http://google.com");
 
 /*

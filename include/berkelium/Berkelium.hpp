@@ -33,6 +33,11 @@
 #ifndef _BERKELIUM_HPP_
 #define _BERKELIUM_HPP_
 #include "berkelium/Platform.hpp"
+namespace sandbox {
+class BrokerServices;
+class TargetServices;
+enum DepEnforcement;
+}
 namespace Berkelium {
 
 /* TODO: Allow forkedProcessHook to be called without requiring the
@@ -41,8 +46,14 @@ namespace Berkelium {
    then uses dlopen or GetProcAddress.
 */
 
+#ifdef _WIN32
+void BERKELIUM_EXPORT forkedProcessHook(
+    sandbox::BrokerServices* (*ptrGetBrokerServices)(),
+    sandbox::TargetServices* (*ptrGetTargetServices)(),
+    bool (*ptrSetCurrentProcessDEP)(enum sandbox::DepEnforcement));
+#else
 void BERKELIUM_EXPORT forkedProcessHook(int argc, char **argv);
-//void BERKELIUM_EXPORT forkedProcessHook(char *szCmdLine);
+#endif
 
 void BERKELIUM_EXPORT init();
 void BERKELIUM_EXPORT destroy();
@@ -52,4 +63,5 @@ void BERKELIUM_EXPORT update();
 int BERKELIUM_EXPORT renderToBuffer(char *buffer, int width, int height);
 
 }
+
 #endif

@@ -241,7 +241,16 @@ void SetupCRT(const CommandLine& parsed_command_line) {
 }
 }
 
-void forkedProcessHook(int argc, char **argv) {
+#ifdef _WIN32
+void forkedProcessHook(
+    sandbox::BrokerServices* (*ptrGetBrokerServices)(),
+    sandbox::TargetServices* (*ptrGetTargetServices)(),
+    bool (*ptrSetCurrentProcessDEP)(enum sandbox::DepEnforcement))
+{
+#else
+void forkedProcessHook(int argc, char **argv)
+{
+#endif
 #if defined(OS_MACOSX)
   // TODO(mark): Some of these things ought to be handled in chrome_exe_main.mm.
   // Under the current architecture, nothing in chrome_exe_main can rely
@@ -352,15 +361,15 @@ void forkedProcessHook(int argc, char **argv) {
     // On Vista, this is unnecessary since it is controlled through the
     // /NXCOMPAT linker flag.
     // Enforces strong DEP support.
-    sandbox::SetCurrentProcessDEP(sandbox::DEP_ENABLED);
+    (*ptrSetCurrentProcessDEP)(sandbox::DEP_ENABLED);
   }
 
   // Get the interface pointer to the BrokerServices or TargetServices,
   // depending who we are.
   sandbox::SandboxInterfaceInfo sandbox_info = {0};
-  sandbox_info.broker_services = sandbox::SandboxFactory::GetBrokerServices();
+  sandbox_info.broker_services = (*ptrGetBrokerServices)();
   if (!sandbox_info.broker_services)
-    sandbox_info.target_services = sandbox::SandboxFactory::GetTargetServices();
+    sandbox_info.target_services = (*ptrGetTargetServices)();
   sandbox_wrapper.SetServices(&sandbox_info);
 #endif
   sandbox_wrapper.InitializeSandbox(parsed_command_line, process_type);

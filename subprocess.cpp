@@ -34,20 +34,28 @@
 
 #ifdef _WIN32
 #include <windows.h>
+#include "sandbox/src/sandbox_factory.h"
+#include "sandbox/src/dep.h"
 int WINAPI WinMain(
     HINSTANCE hInstance,
     HINSTANCE hPrevInstance,
     LPSTR lpCmdLine,
     int nCmdShow)
 {
-    int argc = 0;
-    char **argv = NULL;
+    Berkelium::forkedProcessHook(
+        &sandbox::SandboxFactory::GetBrokerServices,
+        &sandbox::SandboxFactory::GetTargetServices,
+        &sandbox::SetCurrentProcessDEP
+    );
+
+    return 0;
+}
 #else
 int main(int argc, char**argv)
 {
-#endif
-
     Berkelium::forkedProcessHook(argc, argv);
 
     return 0;
 }
+#endif
+
