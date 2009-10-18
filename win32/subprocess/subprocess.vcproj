@@ -44,11 +44,12 @@
 				AdditionalIncludeDirectories="..\..\include;..\..\..\chromium\chromium\src"
 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS"
 				MinimalRebuild="true"
-				BasicRuntimeChecks="3"
+				BasicRuntimeChecks="2"
 				RuntimeLibrary="3"
+				BufferSecurityCheck="false"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
-				DebugInformationFormat="4"
+				DebugInformationFormat="3"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -61,12 +62,15 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="berkelium_d.lib sandbox.lib"
-				OutputFile="..\$(ProjectName).exe"
+				AdditionalDependencies="wininet.lib version.lib msimg32.lib ws2_32.lib usp10.lib psapi.lib dbghelp.lib urlmon.lib berkelium_d.lib sandbox.lib base.lib"
+				OutputFile="..\berkelium_d.exe"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories="..;..\..\..\chromium\chromium\src\chrome\Debug\lib"
+				IgnoreDefaultLibraryNames="libcmtd.lib, msvcprtd.lib"
 				GenerateDebugInformation="true"
+				ProgramDatabaseFile="$(TargetDir)berkelium_exe_d.pdb"
 				SubSystem="2"
+				ImportLibrary="$(TargetDir)berkelium_exe_d.lib"
 				TargetMachine="1"
 			/>
 			<Tool
@@ -137,16 +141,18 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalOptions="/IMPLIB:subprocess.lib"
-				AdditionalDependencies=" wininet.lib version.lib msimg32.lib ws2_32.lib usp10.lib psapi.lib dbghelp.lib urlmon.lib berkelium.lib sandbox.lib base.lib"
+				LinkLibraryDependencies="false"
+				AdditionalDependencies="wininet.lib version.lib msimg32.lib ws2_32.lib usp10.lib psapi.lib dbghelp.lib urlmon.lib berkelium.lib sandbox.lib base.lib"
 				OutputFile="..\berkelium.exe"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="..;..\..\..\chromium\chromium\src\chrome\Release\lib"
 				IgnoreDefaultLibraryNames="libcmt.lib, msvcprt.lib"
 				GenerateDebugInformation="true"
+				ProgramDatabaseFile="$(TargetDir)berkelium_exe.pdb"
 				SubSystem="2"
-				OptimizeReferences="2"
+				OptimizeReferences="1"
 				EnableCOMDATFolding="2"
+				ImportLibrary="$(TargetDir)berkelium_exe.lib"
 				TargetMachine="1"
 			/>
 			<Tool

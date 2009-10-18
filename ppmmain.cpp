@@ -173,7 +173,7 @@ public:
         int dx, int dy,
         const Rect &scrollRect) {}
 };
-
+extern "C" void _chkstk() {}
 #define WIDTH 1024
 #define HEIGHT 768
 int main () {

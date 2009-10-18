@@ -1,0 +1,30 @@
+Index: sandbox/src/policy_broker.h
+===================================================================
+--- sandbox/src/policy_broker.h	(revision 28890)
++++ sandbox/src/policy_broker.h	(working copy)
+@@ -5,6 +5,10 @@
+ #ifndef SANDBOX_SRC_POLICY_BROKER_H__
+ #define SANDBOX_SRC_POLICY_BROKER_H__
+ 
++#ifndef SANDBOX_EXPORTS
++#define SANDBOX_EXPORTS 1
++#endif
++
+ namespace sandbox {
+ 
+ class InterceptionManager;
+Index: sandbox/src/sandbox_types.h
+===================================================================
+--- sandbox/src/sandbox_types.h	(revision 28890)
++++ sandbox/src/sandbox_types.h	(working copy)
+@@ -5,6 +5,10 @@
+ #ifndef SANDBOX_SRC_SANDBOX_TYPES_H_
+ #define SANDBOX_SRC_SANDBOX_TYPES_H_
+ 
++#ifndef SANDBOX_EXPORTS
++#define SANDBOX_EXPORTS 1
++#endif
++
+ namespace sandbox {
+ 
+ // Operation result codes returned by the sandbox API.

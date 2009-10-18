@@ -44,11 +44,10 @@
 				AdditionalIncludeDirectories="..\..\include"
 				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE"
 				MinimalRebuild="true"
-				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
-				DebugInformationFormat="4"
+				DebugInformationFormat="3"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -61,10 +60,10 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="berkelium_d.lib"
+				AdditionalDependencies="berkelium_d.lib berkelium_exe_d.lib"
 				OutputFile="..\$(ProjectName)_d.exe"
 				LinkIncremental="2"
-				AdditionalLibraryDirectories=".."
+				AdditionalLibraryDirectories="..;..\subprocess"
 				GenerateDebugInformation="true"
 				SubSystem="1"
 				TargetMachine="1"
@@ -137,10 +136,10 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="berkelium.lib"
+				AdditionalDependencies="berkelium.lib berkelium_exe.lib"
 				OutputFile="..\$(ProjectName).exe"
 				LinkIncremental="1"
-				AdditionalLibraryDirectories=".."
+				AdditionalLibraryDirectories="..;..\subprocess"
 				GenerateDebugInformation="true"
 				SubSystem="1"
 				OptimizeReferences="2"

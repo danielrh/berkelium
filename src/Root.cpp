@@ -93,6 +93,9 @@ AUTO_SINGLETON_INSTANCE(Berkelium::Root);
 namespace Berkelium {
 
 Root::Root (){
+
+    new base::AtExitManager();
+
 #ifdef _WIN32
     FilePath subprocess;
 #endif
@@ -119,8 +122,6 @@ Root::Root (){
     CommandLine::Init(2, argv);
 #endif
     }
-
-    new base::AtExitManager();
 
 #ifndef _WIN32
 /// Temporary SingletonLock fix:
