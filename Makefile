@@ -61,7 +61,7 @@ DLLEXT=dylib
 else
 PLAT=linux
 PLATCFLAGS=`pkg-config --cflags gtk+-2.0 glib-2.0 gio-unix-2.0`
-PLATLDFLAGS=`pkg-config --libs gtk+-2.0 glib-2.0 gio-unix-2.0 gconf-2.0` -lssl3 -lnss3 -lnssutil3 -lsmime3 -lplds4 -lplc4 -lnspr4 -lpthread -lgdk-x11-2.0 -lgdk_pixbuf-2.0 -llinux_versioninfo -lpangocairo-1.0 -lgio-2.0 -lpango-1.0 -lcairo -lgobject-2.0 -lgmodule-2.0 -lglib-2.0 -lfontconfig -lfreetype -lrt -lgconf-2 -lglib-2.0 -lX11 -lasound -lharfbuzz -lharfbuzz_interface -lsandbox
+PLATLDFLAGS=`pkg-config --libs gtk+-2.0 glib-2.0 gio-unix-2.0 gconf-2.0` -lssl3 -lnss3 -lnssutil3 -lsmime3 -lplds4 -lplc4 -lnspr4 -lpthread -lgdk-x11-2.0 -lgdk_pixbuf-2.0 -llinux_versioninfo -lpangocairo-1.0 -lgio-2.0 -lpango-1.0 -lcairo -lgobject-2.0 -lgmodule-2.0 -lglib-2.0 -lfontconfig -lfreetype -lrt -lgconf-2 -lglib-2.0 -lX11 -lasound -lharfbuzz -lharfbuzz_interface -lsandbox -lnonnacl_util_linux
 START_GROUP=-Wl,--start-group
 END_GROUP=-Wl,--end-group
 DLLEXT=so
@@ -83,7 +83,7 @@ endif
 LIBDIRS=. app base ipc chrome net media webkit sandbox skia printing v8/tools/gyp sdch build/temp_gyp native_client/src/trusted/plugin/ native_client/src/shared/srpc native_client/src/shared/imc native_client/src/shared/platform native_client/src/trusted/nonnacl_util native_client/src/trusted/nonnacl_util/linux native_client/src/trusted/service_runtime/  native_client/src/trusted/desc/ 
 THIRDPARTYLIBDIRS=bzip2 ffmpeg harfbuzz hunspell icu libevent libjpeg libpng libxml libxslt lzma_sdk modp_b64 sqlite zlib WebKit/JavaScriptCore/JavaScriptCore.gyp WebKit/WebCore/WebCore.gyp
 CHROMIUMLDFLAGS=$(addprefix -L$(CHLIBS)/,$(LIBDIRS)) $(addprefix -L$(CHLIBS)/third_party/,$(THIRDPARTYLIBDIRS))
-TPLIBS=-levent -lzlib -lpng -lxml -ljpeg -lxslt -lbzip2 -lsqlite
+TPLIBS=-levent -lzlib -lpng -lxml -ljpeg -lxslt -lbzip2 -lsqlite -lgoogle_nacl_imc_c
 
 GENINCLUDES=$(CHROMIUMDIR)/src/out/$(CHROMIUMMODE)/obj/gen/chrome
 
@@ -97,7 +97,7 @@ endif
 
 CHROMIUMLDFLAGS=-L$(CHLIBS)
 
-TPLIBS=$(CHLIBS)/libevent.a $(CHLIBS)/libxslt.a $(CHLIBS)/libjpeg.a $(CHLIBS)/libpng.a $(CHLIBS)/libz.a $(CHLIBS)/libxml2.a $(CHLIBS)/libbz2.a $(CHLIBS)/libsqlite3.a $(CHLIBS)/libprofile_import.a
+TPLIBS=$(CHLIBS)/libevent.a $(CHLIBS)/libxslt.a $(CHLIBS)/libjpeg.a $(CHLIBS)/libpng.a $(CHLIBS)/libz.a $(CHLIBS)/libxml2.a $(CHLIBS)/libbz2.a $(CHLIBS)/libsqlite3.a $(CHLIBS)/libprofile_import.a -llibgoogle_nacl_imc_c
 
 GENINCLUDES=$(CHROMIUMDIR)/src/xcodebuild/DerivedSources/$(CHROMIUMMODE)/chrome
 
@@ -112,9 +112,9 @@ CHROMIUMLIBPATH=$(CHROMIUMDIR)/src/out/$(CHROMIUMMODE)/lib
 endif
 
 CHROMIUMLDFLAGS=-L$(CHROMIUMLIBPATH)
-TPLIBS=-levent -lxslt -ljpeg -lpng -lz -lxml2 -lbz2 -lsqlite
+TPLIBS=-levent -lxslt -ljpeg -lpng -lz -lxml2 -lbz2 -lsqlite -lgoogle_nacl_imc_c
 endif
-CHROMIUMLIBS=$(CHROMIUMLDFLAGS) $(TPLIBS)  -ldl -lm -lcommon -lbrowser -ldebugger -lrenderer -lutility -lprinting -lapp_base -lbase -licui18n -licuuc -licudata -lbase_gfx -lskia -lnet -lgoogleurl -lsdch -lmodp_b64 -lv8_snapshot -lv8_base -lglue -lpcre -lwtf -lwebkit -lwebcore -lmedia -lffmpeg -lhunspell -lplugin -l appcache -lipc -lworker -ldatabase -lcommon_constants -lnpGoogleNaClPluginChrome -lnonnacl_srpc -lgoogle_nacl_imc_c -lplatform -lsel -lsel_ldr_launcher -lnonnacl_util_chrome -lnrd_xfer -lgio -lexpiration -lnacl -lnonnacl_util_linux
+CHROMIUMLIBS=$(CHROMIUMLDFLAGS) $(TPLIBS)  -ldl -lm -lcommon -lbrowser -ldebugger -lrenderer -lutility -lprinting -lapp_base -lbase -licui18n -licuuc -licudata -lbase_gfx -lskia -lnet -lgoogleurl -lsdch -lmodp_b64 -lv8_snapshot -lv8_base -lglue -lpcre -lwtf -lwebkit -lwebcore -lmedia -lffmpeg -lhunspell -lplugin -l appcache -lipc -lworker -ldatabase -lcommon_constants -lnpGoogleNaClPluginChrome -lnonnacl_srpc -lplatform -lsel -lsel_ldr_launcher -lnonnacl_util_chrome -lnrd_xfer -lgio -lexpiration -lnacl
 # Flags that affect both compiling and linking
 CLIBFLAGS=$(ARCHFLAGS) -fvisibility=hidden -fvisibility-inlines-hidden -fPIC -pthread -Wall -fno-rtti
 

@@ -81,13 +81,13 @@ void handleINT(int sig) {
     unlink(child.value().c_str());
     exit(-sig);
 }
-#endif
-
+#else
 namespace sandbox {
     // Not exported.
     HANDLE g_shared_section = NULL;
     bool s_is_broker = true;
 }
+#endif
 
 AUTO_SINGLETON_INSTANCE(Berkelium::Root);
 namespace Berkelium {

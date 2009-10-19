@@ -36,7 +36,9 @@
 namespace sandbox {
 class BrokerServices;
 class TargetServices;
+#ifdef _WIN32
 enum DepEnforcement;
+#endif
 }
 namespace Berkelium {
 
