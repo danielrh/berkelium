@@ -1,0 +1,38 @@
+Index: chrome/renderer/webplugin_delegate_proxy.cc
+===================================================================
+--- chrome/renderer/webplugin_delegate_proxy.cc	(revision 28789)
++++ chrome/renderer/webplugin_delegate_proxy.cc	(working copy)
+@@ -261,12 +261,29 @@
+   params.page_url = page_url_;
+   params.arg_names = arg_names;
+   params.arg_values = arg_values;
++  bool found_wmode=false;
+   for (size_t i = 0; i < arg_names.size(); ++i) {
+-    if (LowerCaseEqualsASCII(arg_names[i], "wmode") &&
+-        LowerCaseEqualsASCII(arg_values[i], "transparent")) {
+-      transparent_ = true;
+-    }
++      if (LowerCaseEqualsASCII(arg_names[i], "wmode")) {
++          found_wmode=true;
++          if (LowerCaseEqualsASCII(arg_values[i], "transparent")) {
++              transparent_ = true;
++          }
++      }
+   }
++  
++  if (!found_wmode) {
++      std::vector<std::string> surrogate_names;
++      std::vector<std::string> surrogate_arg_values;
++      surrogate_names=arg_names;
++      surrogate_arg_values=arg_values;
++
++      surrogate_names.push_back("wmode");
++      surrogate_arg_values.push_back("opaque");
++
++
++      params.arg_names.swap(surrogate_names);
++      params.arg_values.swap(surrogate_arg_values);
++  }
+   params.load_manually = load_manually;
+ 
+   plugin_ = plugin;
