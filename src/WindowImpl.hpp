@@ -260,6 +260,7 @@ protected: /******* RenderViewHostDelegate::View *******/
     virtual void HandleMouseEvent();
     virtual void HandleMouseLeave();
     virtual void UpdatePreferredWidth(int pref_width);
+    virtual void UpdatePreferredSize(const gfx::Size&);
 
 private:
 
