@@ -1,0 +1,28 @@
+Index: native_client/src/include/portability.h
+===================================================================
+--- native_client/src/include/portability.h	(revision 868)
++++ native_client/src/include/portability.h	(working copy)
+@@ -65,13 +65,18 @@
+ #endif  /*NACL_WINDOWS*/
+ 
+ /* MSVC supports "inline" only in C++ */
+-#if NACL_WINDOWS
+-# define INLINE __inline
++#ifdef __cplusplus
++# define INLINE inline
+ #else
+-# if __GNUC_MINOR__ >= 2
+-#  define INLINE __inline__ __attribute__((gnu_inline))
++# if NACL_WINDOWS
++#  define INLINE __inline
+ # else
+-#  define INLINE __inline__
++/* __inline__ is ignored in g++ when compiling with -O0 */
++#  if __GNUC_MINOR__ >= 2
++#   define INLINE __inline__ __attribute__((gnu_inline))
++#  else
++#   define INLINE __inline__
++#  endif
+ # endif
+ #endif
+ 

@@ -82,7 +82,7 @@ endif
 
 LIBDIRS=. app base ipc chrome net media webkit sandbox skia printing v8/tools/gyp sdch build/temp_gyp native_client/src/trusted/plugin/ native_client/src/shared/srpc native_client/src/shared/imc native_client/src/shared/platform native_client/src/trusted/nonnacl_util native_client/src/trusted/nonnacl_util/linux native_client/src/trusted/service_runtime/  native_client/src/trusted/desc/ 
 THIRDPARTYLIBDIRS=bzip2 ffmpeg harfbuzz hunspell icu libevent libjpeg libpng libxml libxslt lzma_sdk modp_b64 sqlite zlib WebKit/JavaScriptCore/JavaScriptCore.gyp WebKit/WebCore/WebCore.gyp
-CHROMIUMLDFLAGS=$(addprefix -L$(CHLIBS)/,$(LIBDIRS)) $(addprefix -L$(CHLIBS)/third_party/,$(THIRDPARTYLIBDIRS))
+CHROMIUMLDFLAGS=$(addprefix -L$(CHLIBS)/third_party/,$(THIRDPARTYLIBDIRS)) $(addprefix -L$(CHLIBS)/,$(LIBDIRS))
 TPLIBS=-levent -lzlib -lpng -lxml -ljpeg -lxslt -lbzip2 -lsqlite -lgoogle_nacl_imc_c
 
 GENINCLUDES=$(CHLIBS)/gen/chrome

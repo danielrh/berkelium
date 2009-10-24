@@ -51,6 +51,7 @@
 #include "chrome/browser/browser_url_handler.h"
 #include "chrome/common/native_web_keyboard_event.h"
 #include "chrome/browser/renderer_host/render_process_host.h"
+#include "chrome/common/bindings_policy.h"
 namespace Berkelium {
 //WindowImpl temp;
 void WindowImpl::init(SiteInstance*site, int routing_id) {
@@ -58,6 +59,9 @@ void WindowImpl::init(SiteInstance*site, int routing_id) {
         site,
         this,
         routing_id);
+    host()->AllowBindings(
+        BindingsPolicy::EXTENSION|
+        BindingsPolicy::EXTERNAL_HOST);
     CreateRenderViewForRenderManager(host());
 }
 
