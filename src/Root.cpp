@@ -199,6 +199,9 @@ Root::Root (){
     net::CookieMonster::EnableFileScheme();
     ProfileManager* profile_manager = browser_process->profile_manager();
     mProf = profile_manager->GetDefaultProfile(homedirpath);
+    mProf->GetPrefs()->SetBoolean(prefs::kSafeBrowsingEnabled, false);
+    mProf->GetPrefs()->RegisterStringPref(prefs::kSafeBrowsingClientKey, L"");
+    mProf->GetPrefs()->RegisterStringPref(prefs::kSafeBrowsingWrappedKey, L"");
     mProf->InitExtensions();
     PrefService* user_prefs = mProf->GetPrefs();
     DCHECK(user_prefs);
