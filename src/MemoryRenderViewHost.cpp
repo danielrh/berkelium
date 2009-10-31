@@ -64,6 +64,7 @@ void MemoryRenderViewHost::OnMessageReceived(const IPC::Message& msg) {
   IPC_BEGIN_MESSAGE_MAP_EX(MemoryRenderViewHost, msg, msg_is_ok)
     IPC_MESSAGE_HANDLER(ViewHostMsg_ScrollRect, Memory_OnMsgScrollRect)
     IPC_MESSAGE_HANDLER(ViewHostMsg_PaintRect, Memory_OnMsgPaintRect)
+    IPC_MESSAGE_HANDLER(ViewHostMsg_DOMUISend, Memory_OnMsgDOMUISend)
     IPC_MESSAGE_UNHANDLED(RenderViewHost::OnMessageReceived(msg))
   IPC_END_MESSAGE_MAP_EX()
       ;
@@ -75,6 +76,12 @@ void MemoryRenderViewHost::OnMessageReceived(const IPC::Message& msg) {
   }
 }
 
+void MemoryRenderViewHost::Memory_OnMsgDOMUISend(
+    const std::string& message, const std::string& content)
+{
+    std::cout << "Got a DOMUI Message named \'"<<message<<
+        "\', with these parameters"<<std::endl<<content<<std::endl;
+}
 
 
 ///////// MemoryRenderWidgetHost /////////

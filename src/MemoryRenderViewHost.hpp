@@ -105,6 +105,8 @@ public:
     ~MemoryRenderViewHost();
 
     virtual void OnMessageReceived(const IPC::Message& msg);
+    void Memory_OnMsgDOMUISend(const std::string& message,
+                               const std::string& content);
 };
 
 class MemoryRenderViewHostFactory : public RenderViewHostFactory {
