@@ -64,6 +64,11 @@ public:
     virtual void onUnresponsive(Window *win)=0;
     virtual void onResponsive(Window *win)=0;
 
+    virtual void onChromeSend(
+        Window *win,
+        const std::string &message,
+        const std::vector<std::string> &content)=0;
+
     virtual void onCreatedWindow(Window *win, Window *newWindow)=0;
 
     virtual void onPaint(

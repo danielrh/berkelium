@@ -156,6 +156,10 @@ protected: /******* RenderViewHostDelegate *******/
     virtual void RenderViewReady(RenderViewHost* render_view_host);
 
 
+    void ProcessDOMUIMessage(const std::string& message,
+                             const Value* content,
+                             int request_id,
+                             bool has_callback);
     virtual bool IsReservedAccelerator(const NativeWebKeyboardEvent&) {return false;}
     virtual void DidDisplayInsecureContent(){}
     virtual void DidRunInsecureContent(const std::string&){}
