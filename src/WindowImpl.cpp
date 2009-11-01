@@ -39,6 +39,7 @@
 #include "berkelium/WindowDelegate.hpp"
 
 #include "base/file_util.h"
+#include "base/values.h"
 #include "net/base/net_util.h"
 #include "chrome/browser/renderer_host/render_view_host.h"
 #include "chrome/browser/renderer_host/site_instance.h"
@@ -568,6 +569,30 @@ void WindowImpl::RenderViewGone(RenderViewHost* rvh) {
   //view()->OnTabCrashed();
   if (mDelegate) mDelegate->onCrashed(this);
 }
+
+void WindowImpl::ProcessDOMUIMessage(
+    const std::string& message, const Value* content,
+    int request_id, bool has_callback)
+{
+    std::vector<std::string> argsVector;
+
+    /* Callbacks don't work for DOMUI, so we just process message and content.
+       (request_id and has_callback are hardcoded to false.)
+       In addition, content is currently hardcoded as an array of strings.
+    */
+    if (content->GetType() == Value::TYPE_LIST) {
+        const ListValue* argsListValue = static_cast<const ListValue*>(content);
+        for (size_t i = 0; i < argsListValue->GetSize(); ++i) {
+            argsVector.push_back(std::string());
+            argsListValue->GetString(i, &argsVector.back());
+        }
+    }
+
+    if (mDelegate) {
+        mDelegate->onChromeSend(this, message, argsVector);
+    }
+}
+
 
 void WindowImpl::DidNavigate(RenderViewHost* rvh,
                               const ViewHostMsg_FrameNavigate_Params& params) {

@@ -141,6 +141,18 @@ public:
         newWindow->setDelegate(new TestDelegate);
     }
 
+    virtual void onChromeSend(
+        Window *win,
+        const std::string &message,
+        const std::vector<std::string> &contents)
+    {
+        std::cout << "*** onChromeSend ("<<message<<"):"<<std::endl;
+        for (std::vector<std::string>::const_iterator iter = contents.begin();
+             iter != contents.end(); ++iter) {
+            std::cout << "\t\'" << *iter << "\'" << std::endl;
+        }
+    }
+
     virtual void onPaintPluginTexture(
         Window *win,
         void* sourceGLTexture,
