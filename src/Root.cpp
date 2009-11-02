@@ -114,7 +114,9 @@ Root::Root (){
 	PathService::Get(base::DIR_MODULE, &module_dir);
     subprocess = module_dir.Append(L"berkelium.exe");
 	std::wstring subprocess_str = L"berkelium --browser-subprocess-path=";
+	subprocess_str += L"\"";
 	subprocess_str += subprocess.value();
+	subprocess_str += L"\"";
     CommandLine::Init(0, NULL);
     CommandLine::ForCurrentProcess()->ParseFromString(subprocess_str);
 #else
